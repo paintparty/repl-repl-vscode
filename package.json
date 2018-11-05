@@ -1,0 +1,113 @@
+{
+    "name": "repl-repl",
+    "displayName": "repl-repl",
+    "description": "Integrated ClojureScript REPL",
+    "icon": "./images/rr-sticker-225.png",
+    "version": "0.0.0",
+    "publisher": "paintparty",
+    "author":{
+        "name": "paintparty"
+    },
+    "repository": {
+        "type":"git",
+        "url":"https://github.com/paintparty/repl-repl-vscode"
+    },
+    "license": "MIT",
+    "engines": {
+        "vscode": "^1.26.0"
+    },
+    "categories": [
+        "Programming Languages", "Formatters", "Other" 
+    ],
+    "keywords": [
+        "clojurescript",
+        "clojure",
+        "repl",
+        "lisp",
+        "live"
+    ],
+    "galleryBanner": {
+        "color": "rgba(111, 201, 111, 1)",
+        "theme": "dark"
+    },
+    "activationEvents": [
+        "onCommand:repl-repl.eval-outermost-form",
+        "onCommand:repl-repl.eval-current-form",
+        "onCommand:repl-repl.eval-current-expression"
+    ],
+    "main": "./src/extension",
+    "contributes": {
+        "commands": [
+            {
+                "command": "repl-repl.eval-outermost-form",
+                "title": "repl-repl: Evaluate Outermost Form"
+            },
+            {
+                "command": "repl-repl.eval-current-form",
+                "title": "repl-repl: Evaluate Current Form"
+            },
+            {
+                "command": "repl-repl.eval-current-expression",
+                "title": "repl-repl: Evaluate Current Expression"
+            }
+        ] ,
+        "keybindings": [
+            {
+                "command": "repl-repl.eval-outermost-form",
+                "key": "cmd+enter",
+                "when": "isMac && editorTextFocus"
+            },
+            {
+                "command": "repl-repl.eval-outermost-form",
+                "key": "alt+enter",
+                "when": "isWindows && editorTextFocus"
+            },
+            {
+                "command": "repl-repl.eval-outermost-form",
+                "key": "alt+enter",
+                "when": "isLinux && editorTextFocus"
+            },
+            {
+                "command": "repl-repl.eval-current-form",
+                "key": "alt+cmd+enter",
+                "when": "isMac && editorTextFocus"
+            },
+            {
+                "command": "repl-repl.eval-current-form",
+                "key": "win+alt+enter",
+                "when": "isWindows && editorTextFocus"
+            },
+            {
+                "command": "repl-repl.eval-current-form",
+                "key": "meta+alt+enter",
+                "when": "isLinux && editorTextFocus"
+            },
+            {
+                "command": "repl-repl.eval-current-expression",
+                "key": "ctrl+alt+cmd+enter",
+                "when": "isMac && editorTextFocus"
+            }, 
+            {
+                "command": "repl-repl.eval-current-expression",
+                "key": "ctrl+win+alt+enter",
+                "when": "isWindows && editorTextFocus"
+            }, 
+            {
+                "command": "repl-repl.eval-current-expression",
+                "key": "ctrl+meta+alt+enter",
+                "when": "isLinux editorTextFocus"
+            } 
+        ]
+    },
+    "scripts": {
+        "postinstall": "node ./node_modules/vscode/bin/install",
+        "test": "node ./node_modules/vscode/bin/test"
+    },
+    "devDependencies": {
+        "typescript": "^2.6.1",
+        "vscode": "^1.1.21",
+        "eslint": "^4.11.0",
+        "@types/node": "^8.10.25",
+        "@types/mocha": "^2.2.42"
+    }
+}
