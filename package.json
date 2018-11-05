@@ -2,7 +2,7 @@
     "name": "repl-repl",
     "displayName": "repl-repl",
     "description": "Integrated ClojureScript REPL",
-    "icon": "./images/rr-sticker-225.png",
+    "icon": "con.png",
     "version": "0.0.0",
     "publisher": "paintparty",
     "author":{
