@@ -27,7 +27,7 @@
         "live"
     ],
     "galleryBanner": {
-        "color": "rgba(111, 201, 111, 1)",
+        "color": "#6FC96A",
         "theme": "dark"
     },
     "activationEvents": [
