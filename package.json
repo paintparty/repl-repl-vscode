@@ -3,21 +3,23 @@
     "displayName": "repl-repl",
     "description": "Integrated ClojureScript REPL",
     "icon": "icon.png",
-    "version": "0.0.0",
+    "version": "0.1.0",
     "publisher": "paintparty",
-    "author":{
+    "author": {
         "name": "paintparty"
     },
     "repository": {
-        "type":"git",
-        "url":"https://github.com/paintparty/repl-repl-vscode"
+        "type": "git",
+        "url": "https://github.com/paintparty/repl-repl-vscode"
     },
     "license": "MIT",
     "engines": {
         "vscode": "^1.26.0"
     },
     "categories": [
-        "Programming Languages", "Formatters", "Other" 
+        "Programming Languages",
+        "Formatters",
+        "Other"
     ],
     "keywords": [
         "clojurescript",
@@ -50,7 +52,7 @@
                 "command": "repl-repl.eval-current-expression",
                 "title": "repl-repl: Evaluate Current Expression"
             }
-        ] ,
+        ],
         "keybindings": [
             {
                 "command": "repl-repl.eval-outermost-form",
@@ -86,17 +88,17 @@
                 "command": "repl-repl.eval-current-expression",
                 "key": "ctrl+alt+cmd+enter",
                 "when": "isMac && editorTextFocus"
-            }, 
+            },
             {
                 "command": "repl-repl.eval-current-expression",
                 "key": "ctrl+win+alt+enter",
                 "when": "isWindows && editorTextFocus"
-            }, 
+            },
             {
                 "command": "repl-repl.eval-current-expression",
                 "key": "ctrl+meta+alt+enter",
                 "when": "isLinux editorTextFocus"
-            } 
+            }
         ]
     },
     "scripts": {
