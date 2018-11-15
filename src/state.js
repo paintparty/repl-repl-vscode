@@ -49,6 +49,8 @@ const nullProps = [
   "isIgnoredFormRange",
   "isPointOnExpression",
   "isPointNotOnExpression",
+  "isPointFollowingForm",
+  "isPointFollowingExpression",
   "isStringRange",
   "jsComment",
   "jsCommentEvalRange",

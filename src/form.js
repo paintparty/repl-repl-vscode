@@ -65,7 +65,11 @@ function stepFwdCondition(state, counter, formOffset){
 }
 
 function rangeOuterForm(state){
-  let formStartsArray = state.allPos[state.ogPointIdx]
+  let point = state.isPointFollowingForm || state.isPointFollowingExpression ?
+    state.ogPointIdx - 1
+    :
+    state.ogPointIdx;
+  let formStartsArray = state.allPos[point];
   let depth = formStartsArray.length;
   if(!depth){
     return;
@@ -106,13 +110,18 @@ function endOfFormCondition(state, counter, depth) {
   return bools;
 }
 
-function rangeCurrentForm (state){
-  let formStartsArray = state.allPos[state.ogPointIdx]
+
+function rangeCurrentForm(state, checkPreceding) {
+  let point = checkPreceding ? state.ogPointIdx - 1 : state.ogPointIdx
+  let formStartsArray = state.allPos[point];
+
   let depth = formStartsArray.length;
-  if(!depth){ return;}
+  if(!depth){ 
+    return;
+  }
 
   let formOffset = formStartsArray[depth - 1];
-  let counter = state.ogPointIdx;
+  let counter = point;
   
   while (endOfFormCondition(state, counter, depth)){
     counter++;
@@ -122,6 +131,7 @@ function rangeCurrentForm (state){
     end: util.posForIdx(state, counter)
   };
 }
+
 
 function blackListRange (range, state, blackListedRangeIdx) {
   let rangeArr = util.numRange(range.start, range.end, true);
@@ -259,6 +269,7 @@ function blackListAndIndexForms (state){
   }
 }
 
+
 function charExistsAtIdx(state, idx){
   let char = state.buffText.substring(idx, idx+1);
   let isValid = /[^\s\n]/.test(char);
@@ -268,37 +279,39 @@ function charExistsAtIdx(state, idx){
 
 // Evaluate an expression inside form (var, symbol, keyword, number, etc.)
 function evalExpressionInsideForm(state){
-    let formContents = state.textCurrentForm.substr(1).slice(0, -1);
-    let rangeStartIndex = util.idxForPos(state, state.rangeCurrentForm.start);
-    let rangeContentsStartIndex = rangeStartIndex+1;
-    let re = /\#"([^"]|\\")*"|"([^\\"]|\\\\|\\")*"|([^\s\"]+)/gm;
-    let expObj = util.expressionAtIdx(
-      formContents,
-      re,
-      state.ogPointIdx,
-      rangeContentsStartIndex
-    );
+  let point = state.isPointFollowingExpression ? state.ogPointIdx - 1 : state.ogPointIdx;
+  let formContents = state.textCurrentForm.substr(1).slice(0, -1);
+  let rangeStartIndex = util.idxForPos(state, state.rangeCurrentForm.start);
+  let rangeContentsStartIndex = rangeStartIndex+1;
+  let re = /\#"([^"]|\\")*"|"([^\\"]|\\\\|\\")*"|([^\s\"]+)/gm;
+  let expObj = util.expressionAtIdx(
+    formContents,
+    re,
+    point,
+    rangeContentsStartIndex
+  );
 
-    if(expObj){
-      let start = util.posForIdx(state, expObj.startIdx);
-      let end = util.posForIdx(state, expObj.endIdx);
-      state.isPointOnExpression = true;
-      state.rangeCurrentExpression = {start: start, end: end};
-      state.textCurrentExpression = expObj.matchedString;
-    }
+  if(expObj){
+    let start = util.posForIdx(state, expObj.startIdx);
+    let end = util.posForIdx(state, expObj.endIdx);
+    state.isPointOnExpression = true;
+    state.rangeCurrentExpression = {start: start, end: end};
+    state.textCurrentExpression = expObj.matchedString;
+  }
 }
 
 // Evaluate an expression outside form (var, symbol, keyword, number, etc.)
 function evalExpressionOutsideForm(state){
+  let point = state.isPointFollowingExpression ? state.ogPointIdx - 1 : state.ogPointIdx;
   if(state.isStringRange){
     state.rangeCurrentExpression = state.blackListedRange.range;
     state.textCurrentExpression = util.getTextInPointRange(state, state.rangeCurrentExpression);
     return;
   }
-  let idxEnd = state.ogPointIdx;
-  let idxStart = state.ogPointIdx;
+  let idxEnd = point;
+  let idxStart = point;
 
-  if(charExistsAtIdx(state, state.ogPointIdx)){
+  if(charExistsAtIdx(state, point)){
     idxEnd++;
     idxStart--;
     while(!idxIsInForm(state, idxEnd) && charExistsAtIdx(state, idxEnd)){
@@ -313,6 +326,10 @@ function evalExpressionOutsideForm(state){
     state.textCurrentExpression = util.getTextInPointRange(state, state.rangeCurrentExpression);
   }
 }
+
+
+
+
 
 // Evaluate an expression inside a form (string, var, symbol, keyword, number, etc.)
 function addExpressionRange(state){
@@ -355,6 +372,47 @@ function insideForm(state){
   state.textOuterForm = util.getTextInPointRange(state, state.rangeOuterForm);
 }
 
+
+function isPointFollowingExpression(state) {
+  if (state.ogPointIdx === 0) {
+    return null;
+  }
+  let cc = state.buffText.substring(state.ogPointIdx, state.ogPointIdx + 1);
+  let pc = state.buffText.substring(state.ogPointIdx - 1, state.ogPointIdx);
+  let blackListedRangeIdx = state.blackListedPos[state.ogPointIdx];
+  let blackListedRangeObj = state.blackListedRangesByIdx[blackListedRangeIdx];
+  console.log("blackListedRangeObj", blackListedRangeObj);
+  let isWithinString = (blackListedRangeObj && blackListedRangeObj.type === "string");
+  let ccIsClosing = (cc === ")" || cc === "]" || cc === "}");
+  let ccIsCR = (cc === "↵" || cc === "\n" || cc === "\r" || cc === "\r\n");
+  let ccIsBlank = cc === " ";
+  let pcIsClosing = (pc === ")" || pc === "]" || pc === "}");
+  let pcIsBlankOrClosing = (pc === " " || pcIsClosing);
+
+  return (!isWithinString && (ccIsBlank || ccIsClosing || ccIsCR) && !pcIsBlankOrClosing) ?
+    true : null;
+}
+
+
+function isPointFollowingForm(state) {
+  if (state.ogPointIdx === 0) {
+    return null;
+  }
+  let formStartsArray = state.allPos[state.ogPointIdx - 1];
+  console.log("isPointFollowingForm,  formStartsArray => ", formStartsArray);
+  let depth = formStartsArray.length;
+
+  if (!depth) {
+    return null;
+  }
+
+  let pc = state.buffText.substring(state.ogPointIdx - 1, state.ogPointIdx);
+  let pcIsClosing = (pc === ")" || pc === "]" || pc === "}");
+
+  return pcIsClosing;
+}
+
+
 function addFormRange(state){
   if(state.isJs){return;}
 
@@ -362,7 +420,9 @@ function addFormRange(state){
   blackListAndIndexForms(state);
 
   // add range info to state
-  state.rangeCurrentForm = rangeCurrentForm(state)
+  state.isPointFollowingForm = isPointFollowingForm(state);
+  state.isPointFollowingExpression = isPointFollowingExpression(state);
+  state.rangeCurrentForm = rangeCurrentForm(state, state.isPointFollowingForm);
   state.isInsideForm = state.rangeCurrentForm ? true : false;
   state.isOutsideForm = (!state.rangeCurrentForm);
 
