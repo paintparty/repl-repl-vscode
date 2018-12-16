@@ -29,7 +29,7 @@
         "live"
     ],
     "galleryBanner": {
-        "color": "rbg(60, 60, 60)",
+        "color": "#3c3c3c",
         "theme": "dark"
     },
     "activationEvents": [
