@@ -13,7 +13,8 @@ const colors = {
 // create a decorator type that we use to decorate evaled form 
 const workSpaceColorCustomizations = vscode.workspace.getConfiguration('workbench.colorCustomizations');
 const selectionBackgroundHex = (workSpaceColorCustomizations['editor.selectionBackground']);
-const selectionBackground = util.convertHex(selectionBackgroundHex) || 'rgb(92,255,160,0.5)';
+const selectionBackground = selectionBackgroundHex? 
+  util.convertHex(selectionBackgroundHex) : 'rgb(92,255,160,0.5)';
 
 function evalFormHighlight(color){
   let isUserSelectBg = (color === "selectionBackground");

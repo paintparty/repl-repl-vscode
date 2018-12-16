@@ -2,7 +2,7 @@
 
 &nbsp;  
 **repl-repl** makes it dead simple to evaluate Clojurescript code directly from your editor.  
-Instant feedback with syntax highlighting is delivered straight to your DevTools console.  
+Instant feedback with syntax highlighting is delivered straight to your Chrome DevTools console.  
 &nbsp;
 
 
@@ -10,19 +10,23 @@ Instant feedback with syntax highlighting is delivered straight to your DevTools
 
 
 ## Usage ##
-This extension is intended to be used in tandem with a live development environment such as [Figwheel](https://figwheel.org/).
+This extension is designed to be used in tandem with [Figwheel](https://figwheel.org/).
+
+IMPORTANT: Make sure you have [enabled custom formatters in Chrome DevTools](http://www.mattzeunert.com/2016/02/19/custom-chrome-devtools-object-formatters.html). This is necessary because formatting and syntax highlighting of the evaluated code in Chrome DevTools Console relies on [cljs-devtools](https://github.com/binaryage/cljs-devtools), which is bundled with Figwheel by default. 
+
+This extension will also work with [shadow-cljs](http://shadow-cljs.org/) or [boot](https://github.com/adzerk-oss/boot-reload), although you will need to include [cljs-devtools](https://github.com/binaryage/cljs-devtools) as a dependency in your project, and make sure that you've enabled cljs-devtools in your project. Again, you will need to [enable custom formatters in Chrome DevTools](http://www.mattzeunert.com/2016/02/19/custom-chrome-devtools-object-formatters.html).
 
 &nbsp;  
 Based on where the cursor is, you can do one of the following:
 
 ***Evaluate Outermost Form***  
-Default keybinding: `cmd-enter` (mac), `alt-enter` (windows)
+Default keybinding: `cmd-enter` (mac), `alt-enter` (windows & linux)
 
 ***Evaluate Current Form***  
-Default keybinding: `cmd-alt-enter` (mac), `alt-ctrl-enter` (windows)
+Default keybinding: `cmd-alt-enter` (mac), `alt-ctrl-enter` (windows & linux) 
 
 ***Evaluate Current Expression***  
-Default keybinding: `ctrl-cmd-alt-enter` (mac), `shift-ctrl-alt-enter` (windows)
+Default keybinding: `ctrl-cmd-alt-enter` (mac), `shift-ctrl-alt-enter` (windows & linux)
 
 Feel free customize these keybindings to suit your needs.  
 &nbsp;

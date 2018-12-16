@@ -24,7 +24,7 @@ function warningBlock(state) {
   if (state.isJs) {
     return 'console.clear()\nconsole.warn(\n"' + state.warning + '")';
   } else {
-    return '(console.clear)\n(enable-console-print!)\n(js/console.warn\n  "' + state.warning + '")';
+    return '(js/console.clear)\n(enable-console-print!)\n(js/console.warn\n  "' + state.warning + '")';
   }
 }
 
@@ -98,7 +98,7 @@ function cljxBlock(state) {
   let applyLog = '(apply js/console.log ' + nl + ' [' + logArgs + '])';
   let isCljc = state.fileExt === "cljc";
   let cljxApplyLog = isCljc ? '#?(:cljs ' + applyLog + ')' : applyLog;
-  let consoleClear = '(console.clear)';
+  let consoleClear = '(js/console.clear)';
   let ecp = '(enable-console-print!)';
   let newSurf = [nl, surfStart, consoleClear, ecp, strfn, cljxApplyLog, ')', surfEnd].join("\n");
 
@@ -119,8 +119,8 @@ function ghostLogFn(state){
     state.logBlockRange = new vscode.Range(state.endPos, newEndPos);
 
     state.logBlockDecorator = vscode.window.createTextEditorDecorationType({
-      light:{color: "rgba(0, 0, 0, 0.05)"},
-      dark :{color: "rgba(255, 255, 255, 0.05)"}
+      light:{color: "rgba(0, 0, 0, 0.075)"},
+      dark :{color: "rgba(255, 255, 255, 0.075)"}
     });
     state.editor.setDecorations(state.logBlockDecorator, [{range: state.logBlockRange}]);
   }

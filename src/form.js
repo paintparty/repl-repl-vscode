@@ -381,7 +381,7 @@ function isPointFollowingExpression(state) {
   let pc = state.buffText.substring(state.ogPointIdx - 1, state.ogPointIdx);
   let blackListedRangeIdx = state.blackListedPos[state.ogPointIdx];
   let blackListedRangeObj = state.blackListedRangesByIdx[blackListedRangeIdx];
-  console.log("blackListedRangeObj", blackListedRangeObj);
+  //console.log("blackListedRangeObj", blackListedRangeObj);
   let isWithinString = (blackListedRangeObj && blackListedRangeObj.type === "string");
   let ccIsClosing = (cc === ")" || cc === "]" || cc === "}");
   let ccIsCR = (cc === "↵" || cc === "\n" || cc === "\r" || cc === "\r\n");
@@ -399,7 +399,7 @@ function isPointFollowingForm(state) {
     return null;
   }
   let formStartsArray = state.allPos[state.ogPointIdx - 1];
-  console.log("isPointFollowingForm,  formStartsArray => ", formStartsArray);
+  //console.log("isPointFollowingForm,  formStartsArray => ", formStartsArray);
   let depth = formStartsArray.length;
 
   if (!depth) {

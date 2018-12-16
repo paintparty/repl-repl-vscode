@@ -4,15 +4,17 @@ function logStateInfo(state) {
 }
 
 function convertHex(hex) {
-  var hex = hex.replace('#', '');
-  let r = parseInt(hex.substring(0, 2), 16);
-  let g = parseInt(hex.substring(2, 4), 16);
-  let b = parseInt(hex.substring(4, 6), 16);
-  let a = hex.substring(6, 8);
-  let aInt = parseInt(a);
-  let opacity = (a.length === 2 && (aInt !== NaN) && (typeof aInt === 'number')) ? (0.7 * aInt/100) : 1;
-  let result = 'rgba(' + r + ',' + g + ',' + b + ',' + opacity + ')';
-  return result;
+  if(hex){
+    var hex = hex.replace('#', '');
+    let r = parseInt(hex.substring(0, 2), 16);
+    let g = parseInt(hex.substring(2, 4), 16);
+    let b = parseInt(hex.substring(4, 6), 16);
+    let a = hex.substring(6, 8);
+    let aInt = parseInt(a);
+    let opacity = (a.length === 2 && (aInt !== NaN) && (typeof aInt === 'number')) ? (0.7 * aInt/100) : 1;
+    let result = 'rgba(' + r + ',' + g + ',' + b + ',' + opacity + ')';
+    return result;
+  }
 }
 
 function numRange(left, right, inclusive) {

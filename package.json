@@ -29,7 +29,7 @@
         "live"
     ],
     "galleryBanner": {
-        "color": "#6FC96A",
+        "color": "rbg(60, 60, 60)",
         "theme": "dark"
     },
     "activationEvents": [
@@ -76,12 +76,12 @@
             },
             {
                 "command": "repl-repl.eval-current-form",
-                "key": "win+alt+enter",
+                "key": "ctrl+alt+enter",
                 "when": "isWindows && editorTextFocus"
             },
             {
                 "command": "repl-repl.eval-current-form",
-                "key": "meta+alt+enter",
+                "key": "ctrl+alt+enter",
                 "when": "isLinux && editorTextFocus"
             },
             {
@@ -91,12 +91,12 @@
             },
             {
                 "command": "repl-repl.eval-current-expression",
-                "key": "ctrl+win+alt+enter",
+                "key": "shift+ctrl+alt+enter",
                 "when": "isWindows && editorTextFocus"
             },
             {
                 "command": "repl-repl.eval-current-expression",
-                "key": "ctrl+meta+alt+enter",
+                "key": "shift+ctrl+alt+enter",
                 "when": "isLinux editorTextFocus"
             }
         ]
