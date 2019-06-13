@@ -1,5 +1,4 @@
 const vscode = require('vscode');
-const decorate = require('./decorate');
 
 // reserve various defs
 function getCopiedEscapeDefs(copied) {
@@ -61,8 +60,8 @@ function cljxBlock(state) {
     return warningBlock(state);
   }
   let copied = state[state.logTuple[0]];
-  let surfStart = '; rr_';
-  let surfEnd = '; _rr';
+  let surfStart = '; repl-repl output start';
+  let surfEnd = '; repl-repl output end';
 
   // quotes and newlines for cljs
   let sp = ' ';
@@ -79,14 +78,12 @@ function cljxBlock(state) {
 
   // escape cljx defs
   let thingToEval = state.isJsComment ?
-    '(js/eval "' + state.jsComment + '")'
-    :
+    '(js/eval "' + state.jsComment + '")' :
     getCopiedEscapeDefs(copied);
 
   // cljs to pass quoted form to stringify fn
   let thingToEvalDisplay = state.isJsComment ?
-    '"' + state.jsComment + '"'
-    :
+    '"' + state.jsComment + '"' :
     '(' + strfnName + ' (quote ' + copied + '))';
 
   // cljs to pass evaled form(result) to stringify fn
@@ -107,41 +104,47 @@ function cljxBlock(state) {
 
 function logBlock(state) {
   return (state.fileExt === 'js') ?
-    jsBlock(state)
-    :
+    jsBlock(state) :
     cljxBlock(state);
 }
 
-function ghostLogFn(state){
+function ghostLogFn(state) {
   return () => {
     let newBuffText = state.buff.getText();
     let newEndPos = state.buff.positionAt(newBuffText.length);
     state.logBlockRange = new vscode.Range(state.endPos, newEndPos);
 
     state.logBlockDecorator = vscode.window.createTextEditorDecorationType({
-      light:{color: "rgba(0, 0, 0, 0.075)"},
-      dark :{color: "rgba(255, 255, 255, 0.075)"}
+      light: {
+        color: "rgba(80, 145, 222, 1)"
+      },
+      dark: {
+        color: "rgba(100, 175, 255, 1)"
+      }
     });
-    state.editor.setDecorations(state.logBlockDecorator, [{range: state.logBlockRange}]);
+    state.editor.setDecorations(state.logBlockDecorator, [{
+      range: state.logBlockRange
+    }]);
   }
 }
 
-function insertTextFn(state, newSurf){
-  return () => { 
-    return vscode.window.activeTextEditor.edit( edit => {
+function insertTextFn(state, newSurf) {
+  return () => {
+    return vscode.window.activeTextEditor.edit(edit => {
       edit.replace(state.logBlockRange, newSurf);
     });
   };
 }
-function insertBlankTextFn(state, newSurf){
-  return () => { 
-    return vscode.window.activeTextEditor.edit( edit => {
+
+function insertBlankTextFn(state, newSurf) {
+  return () => {
+    return vscode.window.activeTextEditor.edit(edit => {
       edit.insert(state.endPos, newSurf.replace(/./gm, ' '));
     });
   };
 }
 
-function deleteText(range, state){
+function deleteText(range, state) {
   vscode.window.activeTextEditor.edit(
     edit => {
       edit.delete(range);
@@ -150,12 +153,25 @@ function deleteText(range, state){
   );
 }
 
-function deleteLogBlockFn(state){
-  return(
-    function deleteLogBlock(promise){
-      setTimeout(deleteText, 500, state.logBlockRange, state); 
+function getDeleteRange(state) {
+  const userInsertsFinalNewline = vscode.workspace.getConfiguration().get('files.insertFinalNewline')
+  if (userInsertsFinalNewline) {
+    const start = state.logBlockRange.start;
+    const end = state.logBlockRange.end;
+    const newRange = new vscode.Range(start.line, start.character, end.line + 2, 0);
+    return newRange;
+  } else {
+    return state.logBlockRange;
+  }
+}
+
+function deleteLogBlockFn(state) {
+  return (
+    function deleteLogBlock(promise) {
+      const deleteRange = getDeleteRange(state);
+      setTimeout(deleteText, 500, deleteRange, state);
     }
-  );
+  )
 }
 
 exports.warningBlock = warningBlock;
