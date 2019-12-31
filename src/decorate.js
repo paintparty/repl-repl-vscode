@@ -10,22 +10,22 @@ const colors = {
   orange : "rgba(246, 194, 113, 0.3)"
 };
 
-// create a decorator type that we use to decorate evaled form 
+// create a decorator type that we use to decorate evaled form
 const workSpaceColorCustomizations = vscode.workspace.getConfiguration('workbench.colorCustomizations');
 const selectionBackgroundHex = (workSpaceColorCustomizations['editor.selectionBackground']);
-const selectionBackground = selectionBackgroundHex? 
+const selectionBackground = selectionBackgroundHex?
   util.convertHex(selectionBackgroundHex) : 'rgb(92,255,160,0.5)';
 
 function evalFormHighlight(color){
   let isUserSelectBg = (color === "selectionBackground");
   let isTransparent = (color === "transparent");
-  let bgColorLight = isUserSelectBg ? 
-    selectionBackground :  
+  let bgColorLight = isUserSelectBg ?
+    selectionBackground :
     isTransparent ?
       'rgba(255,255,255,0.0)' :
       color;
-  let bgColorDark = isUserSelectBg ? 
-    selectionBackground :  
+  let bgColorDark = isUserSelectBg ?
+    selectionBackground :
     isTransparent ?
       'rgba(255,255,255,0.0)' :
       'rgba(255,255,255,0.5)';
@@ -49,7 +49,7 @@ function changeHighlight(state, color, highlight, range){
   return highlight;
 }
 
-// Indiana Jones and the triangle of doom... 
+// callback triangle
 function evalFormHighlightAnimation(state, range){
   let highlight = evalFormHighlight("transparent");
   state.editor.setDecorations(highlight, [range]);
@@ -78,21 +78,21 @@ function evalFormHighlightAnimation(state, range){
                               setTimeout(
                                 () => {
                                   clearEvalFormHighlight(highlight);
-                                }, 
+                                },
                                 interval);
-                            }, 
+                            },
                             interval);
-                        }, 
+                        },
                         interval);
-                    }, 
+                    },
                     interval);
-                }, 
+                },
                 interval);
-            }, 
+            },
             interval);
-        }, 
+        },
         interval);
-    }, 
+    },
     interval);
 }
 

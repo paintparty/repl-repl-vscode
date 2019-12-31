@@ -1,12 +1,13 @@
 const vscode = require('vscode');
+const util = require('./util');
 
 // reserve various defs
 function getCopiedEscapeDefs(copied) {
+  let cljMacros = new Set(['defn', 'def', 'and', 'if', 'let']);
   let nsRe = /^\(\s*ns\s+\S+[\s\S]*\)$/
   if (nsRe.test(copied)) {
     return "nil"
   }
-
   // just match on current regex. if true, turn into array
   let defMatch = /^\(\s*def(?:n|record|protocol|multi|type|method)?\s+(?:\^\S+\s+)*(?:\#\^\{.*\}\s)*(\S+)[\s\S]*\)$/
   let defMatchResult = defMatch.exec(copied);
@@ -15,68 +16,60 @@ function getCopiedEscapeDefs(copied) {
   } else {
     let defExpressionMatch = /^def(?:n|record|protocol|multi|type|method)?$/
     let defExpressionMatchResult = defExpressionMatch.exec(copied);
-    return defExpressionMatchResult ? "'cljs.core/" + copied : copied;
+    return (defExpressionMatchResult || cljMacros.has(copied)) ? "'cljs.core/" + copied : copied;
   }
 }
 
 function warningBlock(state) {
-  if (state.isJs) {
-    return 'console.clear()\nconsole.warn(\n"' + state.warning + '")';
-  } else {
-    return '(js/console.clear)\n(enable-console-print!)\n(js/console.warn\n  "' + state.warning + '")';
-  }
+  return '(js/console.clear)\n(enable-console-print!)\n(js/console.warn\n  "' + state.warning + '")';
 }
 
-function jsBlock(state) {
-  if (state.warning) {
-    return warningBlock(state);
-  }
-  let result = 'eval(`' + state.selectedText + '`)';
-  let surfStart = '// rr_______';
-  let surfEnd = '// _______rr';
-
-  let q = '`';
-  let nl = '\n';
-  let qnl = '`\n`';
-  let qnlSp = '`\n `';
-  let sp = ' ';
-  let nlTwoSp = nl + sp + sp;
-  let joiner = `,${nlTwoSp}`;
-  let doubleLineBreak = q + '\\n\\n' + q;
-  let thingToEvalDisplay = q + state.selectedText + q;
-  let thingToEval = q + '=>' + q + ',' + nlTwoSp + result;
-  let logArgs = [qnl, thingToEvalDisplay, doubleLineBreak, thingToEval, qnlSp].join(joiner);
-  let applyLog = `console.log.apply(${nl}console, [\n${logArgs}\n])`;
-  let consoleClear = 'console.clear()';
-  let newSurf = [consoleClear, surfStart, applyLog, surfEnd].join("\n");
-  return newSurf;
-}
-
-
-
-function cljxBlock(state) {
-
+function logWrap(state) {
   if (state.warning) {
     return warningBlock(state);
   }
   let copied = state[state.logTuple[0]];
-  let surfStart = '; repl-repl output start';
-  let surfEnd = '; repl-repl output end';
+  let surfStart = '#_?';
 
   // quotes and newlines for cljs
   let sp = ' ';
-  let qsp = '" "';
+
+  // escape defs
+  let thingToEval = state.isJsComment ?
+    '(js/eval "' + state.jsComment + '")' :
+    getCopiedEscapeDefs(copied);
+
+  // joiner changed to sp
+  let applyLog = `(js/console.log "\\n" (quote ${thingToEval}) "\\n\\n =>" ${thingToEval} "\\n\\n")`;
+  let isCljc = state.fileExt === "cljc";
+  let cljcApplyLog = isCljc ? '#?(:cljs ' + applyLog + ')' : applyLog;
+  let newSurf = ['('+surfStart, 'do', cljcApplyLog, '#_.', thingToEval, '#_..)'].join(sp);
+
+  return newSurf;
+}
+
+
+function logBlock(state) {
+  if (state.warning) {
+    return warningBlock(state);
+  }
+  let copied = state[state.logTuple[0]];
+  let surfStart = '#___rr-start';
+  let surfEnd = '#___rr-end';
+
+  // quotes and newlines for cljs
+  let sp = ' ';
   let nl = '\n';
   let qnl = '"\\n"';
   let qnlSp = '"\\n "';
   let qdq = '"\\""';
   let nlTwoSp = nl + sp + sp;
 
-  // cljx stringify fn
+  // stringify fn
   let strfnName = 'rr';
   let strfn = '(let [' + strfnName + ' (fn [v] (if (string? v) (str ' + qdq + ' v ' + qdq + ') v))]';
 
-  // escape cljx defs
+  // escape defs
   let thingToEval = state.isJsComment ?
     '(js/eval "' + state.jsComment + '")' :
     getCopiedEscapeDefs(copied);
@@ -92,28 +85,44 @@ function cljxBlock(state) {
   let joiner = nlTwoSp;
   let doubleLineBreak = qnl + qnl;
   let logArgs = [qnl, thingToEvalDisplay, doubleLineBreak, evalResultLine, qnlSp].join(joiner);
-  let applyLog = '(apply js/console.log ' + nl + ' [' + logArgs + '])';
+  let applyLog = '(apply js/console.log' + nl + ' [' + logArgs + '])';
   let isCljc = state.fileExt === "cljc";
-  let cljxApplyLog = isCljc ? '#?(:cljs ' + applyLog + ')' : applyLog;
+  let cljcApplyLog = isCljc ? '#?(:cljs ' + applyLog + ')' : applyLog;
   let consoleClear = '(js/console.clear)';
   let ecp = '(enable-console-print!)';
-  let newSurf = [nl, surfStart, consoleClear, ecp, strfn, cljxApplyLog, ')', surfEnd].join("\n");
+  let newSurf = [nl, surfStart, consoleClear, ecp, strfn, cljcApplyLog+')', surfEnd].join("\n");
 
   return newSurf;
 }
 
-function logBlock(state) {
-  return (state.fileExt === 'js') ?
-    jsBlock(state) :
-    cljxBlock(state);
+function injectNewFn (state) {
+  return () => {
+    return vscode.window.activeTextEditor.edit(edit => {
+      let evalRange = state[state.logTuple[2]]
+      edit.replace(new vscode.Range(evalRange.start, evalRange.end), state.logBlock);
+    });
+  };
 }
 
+function replaceLogWrapFn (state) {
+  return () => {
+    return vscode.window.activeTextEditor.edit(edit => {
+      let r = state.blackListedRange.range;
+      let wrappedText = util.getTextInPointRange(state, r);
+      let re = /\#_\. ([\s\S]*) \#_\.\./gm;
+      let m = re.exec(wrappedText);
+      let wrappedValue = ( m && m.length > 1 ) ? m[1] : null;
+      edit.replace(new vscode.Range(r.start, r.end), wrappedValue);
+    });
+  };
+}
+
+// Setup decoration for the range we are inserting logblock into
 function ghostLogFn(state) {
   return () => {
     let newBuffText = state.buff.getText();
     let newEndPos = state.buff.positionAt(newBuffText.length);
     state.logBlockRange = new vscode.Range(state.endPos, newEndPos);
-
     state.logBlockDecorator = vscode.window.createTextEditorDecorationType({
       light: {
         color: "rgba(80, 145, 222, 1)"
@@ -131,6 +140,7 @@ function ghostLogFn(state) {
 function insertTextFn(state, newSurf) {
   return () => {
     return vscode.window.activeTextEditor.edit(edit => {
+      //console.log(state)
       edit.replace(state.logBlockRange, newSurf);
     });
   };
@@ -174,11 +184,27 @@ function deleteLogBlockFn(state) {
   )
 }
 
+function rrLogBlocks (editor) {
+  // Nuke any cruf rr logblocks
+  const documentText = editor.document.getText();
+  let matchRanges = [];
+  let re = /(\#___rr-start[\s\S]*?\#___rr-end)/gm;
+  var match;
+
+  while (match = re.exec(documentText)) {
+     matchRanges.push([match.index, re.lastIndex])
+  }
+  return matchRanges;
+}
+
+exports.rrLogBlocks = rrLogBlocks;
 exports.warningBlock = warningBlock;
-exports.cljxBlock = cljxBlock;
-exports.jsBlock = jsBlock;
 exports.logBlock = logBlock;
+exports.logWrap = logWrap;
 exports.insertTextFn = insertTextFn;
 exports.insertBlankTextFn = insertBlankTextFn;
 exports.ghostLogFn = ghostLogFn;
 exports.deleteLogBlockFn = deleteLogBlockFn;
+
+exports.injectNewFn = injectNewFn;
+exports.replaceLogWrapFn = replaceLogWrapFn;

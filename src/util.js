@@ -42,7 +42,7 @@ function toIdxRange(state, pointRange) {
 
 function getCursorOffset(editor){
   let buff = editor.document;
-  return buff.offsetAt(editor.selection.active);  
+  return buff.offsetAt(editor.selection.active);
 }
 
 function vsSendCursorToPos(pos){
@@ -100,26 +100,11 @@ function reducerFn(ns) {
   );
 }
 
-function isJsWithNoSelectedText(state) {
-  let ext = state.fileExt;
-  return ((ext === 'js' || ext === 'jsx') && !state.selectedText)
-}
-
 function fileExt(state) {
   let fileExtMatch = state.editor.document.fileName.match(/.(cljs|cljc|js|jsx)$/);
   if (fileExtMatch) {
     return fileExtMatch[1];
   }
-}
-
-function isCljx(state) {
-  let ext = state.fileExt;
-  return (ext === "cljs" || ext === "cljc");
-}
-
-function isJs(state) {
-  let ext = state.fileExt;
-  return (ext === "js" || ext === "jsx");
 }
 
 function selection(state) {
@@ -133,7 +118,7 @@ function selectionRange(state) {
     return null;
   }else{
     let range = new vscode.Range(start, end);
-    return range; 
+    return range;
   }
 }
 
@@ -205,7 +190,7 @@ function charAtIdx(state, idx) {
 function getTextInPointRange(state, range) {
   let newRange = new vscode.Range(range.start, range.end);
   let textInRange = state.buff.getText(newRange);
-  return textInRange
+  return textInRange;
 }
 // VS Code specific end
 
@@ -217,8 +202,6 @@ exports.charAtIdx = charAtIdx;
 exports.idxForPos = idxForPos;
 exports.posForIdx = posForIdx;
 exports.fileExt = fileExt;
-exports.isCljx = isCljx;
-exports.isJs = isJs;
 exports.isCursorAtHeadOfSelection = isCursorAtHeadOfSelection;
 exports.isCursorAtTailOfSelection = isCursorAtTailOfSelection;
 exports.ogPoint = ogPoint;
@@ -233,7 +216,6 @@ exports.selectionRange = selectionRange;
 // End VS Code specific
 
 exports.logStateInfo = logStateInfo;
-exports.isJsWithNoSelectedText = isJsWithNoSelectedText;
 exports.convertHex = convertHex;
 exports.expressionAtIdx = expressionAtIdx;
 exports.numRange = numRange;

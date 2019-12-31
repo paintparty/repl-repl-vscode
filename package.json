@@ -35,7 +35,11 @@
     "activationEvents": [
         "onCommand:repl-repl.eval-outermost-form",
         "onCommand:repl-repl.eval-current-form",
-        "onCommand:repl-repl.eval-current-expression"
+        "onCommand:repl-repl.eval-current-expression",
+        "onCommand:repl-repl.log-wrap-outer-form",
+        "onCommand:repl-repl.log-wrap-current-form",
+        "onCommand:repl-repl.log-wrap-current-expression",
+        "onCommand:repl-repl.remove-log-wrap"
     ],
     "main": "./src/extension",
     "contributes": {
@@ -51,6 +55,22 @@
             {
                 "command": "repl-repl.eval-current-expression",
                 "title": "repl-repl: Evaluate Current Expression"
+            },
+            {
+                "command": "repl-repl.log-wrap-outer-form",
+                "title": "repl-repl: Log Wrap Outer Form"
+            },
+            {
+                "command": "repl-repl.log-wrap-current-form",
+                "title": "repl-repl: Log Wrap Current Form"
+            },
+            {
+                "command": "repl-repl.log-wrap-current-expression",
+                "title": "repl-repl: Log Wrap Current Expression"
+            },
+            {
+                "command": "repl-repl.remove-log-wrap",
+                "title": "repl-repl: Remove Log Wrap"
             }
         ],
         "keybindings": [

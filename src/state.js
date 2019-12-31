@@ -1,13 +1,6 @@
 const util = require('./util');
 const form = require('./form');
 
-function fatalWarnings(state) {
-  if (!state.fileExt) {
-    state.fatalWarning = "File must have a valid file extension such as .cljs, .cljc, .js, or .ts"
-    return true;
-  }
-}
-
 function adjustOgPointIdx(state) {
   if (state.isCursorAtHeadOfSelection) { state.ogPointIdx--; }
 }
@@ -16,12 +9,14 @@ function setUserCommandCode(state) {
   state.ecf = state.userArg === "eval-current-form";
   state.eof = state.userArg === "eval-outermost-form";
   state.ece = state.userArg === "eval-current-expression";
+  state.lwcf = state.userArg === "log-wrap-current-form";
+  state.lwof = state.userArg === "log-wrap-outer-form";
+  state.lwce = state.userArg === "log-wrap-current-expression";
+  state.rlw = state.userArg === "remove-log-wrap";
 }
 
 const stateProps = [
   "fileExt",
-  "isCljx",
-  "isJs",
   "buff",
   "buffText",
   "selection",
@@ -32,7 +27,6 @@ const stateProps = [
   "ogPoint",
   "isCursorAtTailOfSelection",
   "isCursorAtHeadOfSelection",
-  "isJsWithNoSelectedText",
   "ogPointIdx"
 ];
 
@@ -41,12 +35,14 @@ const nullProps = [
   "isNotBlacklisted",
   "isInsideForm",
   "isInExpression",
+  "isInsideFn",
   "isNotJsCommentInExpression",
   "isJsComment",
   "isNotJsComment",
   "isOutsideForm",
   "isCommentRange",
   "isIgnoredFormRange",
+  "isLogWrapped",
   "isPointOnExpression",
   "isPointNotOnExpression",
   "isPointFollowingForm",
@@ -62,8 +58,7 @@ const nullProps = [
   "textCurrentExpression",
   "textCurrentForm",
   "textOuterForm",
-  "warning",
-  "fatalWarning"
+  "warning"
 ];
 
 function nPropsReducer(acc, v) {
@@ -79,7 +74,7 @@ function getBufferState(editor, userArg) {
 
   let state = nullProps.reduce(nPropsReducer, stateProps.reduce(rf, acc));
 
-  if (fatalWarnings(state)) {
+  if (!(state.fileExt === "cljs" || state.fileExt === "cljc")) {
     return;
   }
   setUserCommandCode(state);
