@@ -1,5 +1,5 @@
 const vscode = require('vscode');
-//const util = require('./util');
+
 const colors = {
   red : "rgba(255, 193, 193, 0.3)",
   violet: "rgba(223, 193, 255, 0.3)",
@@ -61,12 +61,6 @@ function changeHighlight(color, highlight, range){
   vscode.window.activeTextEditor.setDecorations(highlight, [range]);
   return highlight;
 }
-// function changeHighlight(state, color, highlight, range){
-//   clearEvalFormHighlight(highlight);
-//   highlight = evalFormHighlight(color);
-//   state.editor.setDecorations(highlight, [range]);
-//   return highlight;
-// }
 
 function evalFormHighlightAnimation(range){
   let highlight = evalFormHighlight("transparent");
@@ -113,66 +107,9 @@ function evalFormHighlightAnimation(range){
     },
     interval);
 }
-// callback triangle
-// function evalFormHighlightAnimation(state, range){
-//   let highlight = evalFormHighlight("transparent");
-//   state.editor.setDecorations(highlight, [range]);
-//   let interval = 50;
-//   setTimeout(
-//     () => {
-//       highlight = changeHighlight(state, colors.cyan, highlight, range);
-//       setTimeout(
-//         () => {
-//           highlight = changeHighlight(state, colors.green, highlight, range);
-//           setTimeout(
-//             () => {
-//               highlight = changeHighlight(state, colors.yellow, highlight, range);
-//               setTimeout(
-//                 () => {
-//                   highlight = changeHighlight(state, colors.orange, highlight, range);
-//                   setTimeout(
-//                     () => {
-//                       highlight = changeHighlight(state, colors.red, highlight, range);
-//                       setTimeout(
-//                         () => {
-//                           highlight = changeHighlight(state, colors.violet, highlight, range);
-//                           setTimeout(
-//                             () => {
-//                               highlight = changeHighlight(state, colors.blue, highlight, range);
-//                               setTimeout(
-//                                 () => {
-//                                   clearEvalFormHighlight(highlight);
-//                                 },
-//                                 interval);
-//                             },
-//                             interval);
-//                         },
-//                         interval);
-//                     },
-//                     interval);
-//                 },
-//                 interval);
-//             },
-//             interval);
-//         },
-//         interval);
-//     },
-//     interval);
-// }
-
-// function highlightEvalForm(state) {
-//   if (state.logTuple && state.logTuple[1] !== "warning") {
-//     let rangeToHighlight = state[state.logTuple[2]]
-//     evalFormHighlightAnimation(state, rangeToHighlight);
-//   }
-// }
 
 function highlightEvalForm(rangeToHighlight) {
   evalFormHighlightAnimation(rangeToHighlight);
-  // if (state.logTuple && state.logTuple[1] !== "warning") {
-  //   let rangeToHighlight = state[state.logTuple[2]]
-  //   evalFormHighlightAnimation(state, rangeToHighlight);
-  // }
 }
 
 exports.clearEvalFormHighlight = clearEvalFormHighlight;

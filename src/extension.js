@@ -1,10 +1,7 @@
 'use strict'
 const vscode = require('vscode');
 const logger = require('./logger');
-//const util = require('./util');
 const decorate = require('./decorate');
-const bufferState = require('./state');
-const control = require('./control');
 
 function selectionRange() {
   let editor = vscode.window.activeTextEditor;
@@ -27,11 +24,6 @@ function selectedText() {
 
 function charAtIdx(idx) {
   let char = vscode.window.activeTextEditor.document.getText().substring(idx, idx + 1);
-  return char;
-}
-
-function charAtIdxRange(startIdx, endIdx) {
-  let char = vscode.window.activeTextEditor.document.getText().substring(startIdx, endIdx);
   return char;
 }
 
@@ -63,9 +55,11 @@ function vsSendCursorToEndPos(pos){
   //lo("_vsSendCursorToEndPos", pos);
   _vsSendCursorToPos(pos, true);
 }
+
 function lo (s, o){
   console.log("\n\n"+s, JSON.stringify( o, null, 2 ))
 }
+
 function lv (s, v){
   console.log("\n\n"+s, v)
 }
@@ -90,7 +84,6 @@ function getFormInfo(text){
 }
 
 function isTextInsideString(){
-  let text = selectedText();
   let textRange = selectionRange();
   let editor = vscode.window.activeTextEditor;
   let textRangeStartIdx = editor.document.offsetAt(textRange.start);
@@ -139,7 +132,7 @@ function validateText(s, range){
       return null
     }
   }else if(s.match(/^;/)){
-    lv("starts with ;", s)
+    //lv("starts with ;", s)
     return null;
   }else{
     return s;
@@ -186,7 +179,7 @@ function profile(userArg){
   o.text = text;
 
   lo("textRange", o.textRange);
-  lv("text", o.text);
+  //lv("text", o.text);
 
   if(!o.text){
     o.textRange = null
@@ -197,8 +190,8 @@ function profile(userArg){
     vscode.commands.executeCommand("paredit.forwardSexp");
     let offsetIdx = editor.document.offsetAt(editor.selection.active);
     let char = editor.document.getText().substring(offsetIdx, offsetIdx + 1);
-    lv("idx2", offsetIdx);
-    lv("char", char);
+    //lv("idx2", offsetIdx);
+    //lv("char", char);
     if(["(", "{"].includes(char)){
       o.text = null
       const formType = (char==="(") ? "list or anonymous function" : "set";
@@ -208,10 +201,8 @@ function profile(userArg){
 
   if(o.text){
     o.textRangeStartIdx = editor.document.offsetAt(o.textRange.start);
-    //console.log("textRangeStartIdx", o.textRangeStartIdx);
 
     o.textRangeEndIdx = editor.document.offsetAt(o.textRange.end);
-    //console.log("textRangeStartIdx", o.textRangeEndIdx);
 
     o.precedingChar = (o.textRangeStartIdx !== 0) ? charAtIdx(o.textRangeStartIdx-1) : null;
     o.preceding2Char = (o.textRangeStartIdx > 1) ? charAtIdx(o.textRangeStartIdx-2) : null;
@@ -219,7 +210,6 @@ function profile(userArg){
 
     let p2Chars = o.preceding2Char + o.precedingChar;
     o.isCommentedForm = ( p2Chars === "#_" ) || ( o.preceding3Char + p2Chars === "#_\n" );
-    //console.log("isCommentedForm", o.isCommentedForm);
 
     o.firstChar = o.text.charAt(0);
     o.lastChar = o.text.charAt(o.text.length-1);
@@ -266,8 +256,8 @@ function profile(userArg){
           new vscode.Range(posForIdx(idxForPos(lwTextRange.start) - 1), lwTextRange.end)
           :
           lwTextRange
-        lo("lwTextRange", lwTextRange)
-        lo("newLwTextRange", newLwTextRange)
+        //lo("lwTextRange", lwTextRange)
+        //lo("newLwTextRange", newLwTextRange)
         o.consoleLogWrappedText = vscode.window.activeTextEditor.document.getText(newLwTextRange);
       }
       o.jsComment = (function(){
@@ -302,20 +292,20 @@ function profileEvalFn(userArg){
   return () => {
     let editor = vscode.window.activeTextEditor;
     let cursorPos =  editor.selection.active;
-    lv("userArg:", userArg)
+    //lv("userArg:", userArg)
 
     // If point is on commented line, bail.
     // If first char on line is semicolon
     let leadingChar = editor.document.lineAt(cursorPos.line).text.trim().charAt(0);
     let isCommentLine = leadingChar === ";"
     if (isCommentLine){
-      lv("", "commented line!");
+      //lv("", "commented line!");
       vscode.window.showWarningMessage("repl-repl: Commented line")
       return;
     }
 
     let p = profile(userArg);
-    lo("profile", p);
+    //lo("profile", p);
 
     if(p.textRange) {
       if(p.isConsoleLogWrap){
@@ -336,11 +326,11 @@ function profileEvalFn(userArg){
         injectNew()
       }else{
         decorate.highlightEvalForm(p.textRange);
-        const newSurf  = logger.logBlock2(p);
-        lv("logBlock", newSurf);
-        const injectBlank = logger.insertBlankTextFn2(p, newSurf);
-        const ghostLog = logger.ghostLogFn2(p);
-        const injectText = logger.insertTextFn2(p, newSurf);
+        const newSurf  = logger.logBlock(p);
+        //lv("logBlock", newSurf);
+        const injectBlank = logger.insertBlankTextFn(p, newSurf);
+        const ghostLog = logger.ghostLogFn(p);
+        const injectText = logger.insertTextFn(p, newSurf);
         const save = saveFileFn();
         const deleteLogBlock = logger.deleteLogBlockFn(p);
         injectBlank()
@@ -365,103 +355,9 @@ function replrepl (userArg) {
     const deleteCruft = logger.deleteCruftFn(logBlocks);
     deleteCruft().then(profileEval);
   }else{
-    lv("else", 12)
+    //lv("else", 12)
     profileEval();
   }
-
-
-
-  //   }else{
-  //     // flash highlight on form to be evaluated.
-  //     decorate.highlightEvalForm(state);
-  //     const newSurf = logger.logBlock(state);
-  //     state.logBlock = newSurf;
-  //     const injectBlank = logger.insertBlankTextFn(state, newSurf);
-  //     const injectText = logger.insertTextFn(state, newSurf);
-  //     const save = util.saveFileFn(state);
-  //     const ghostLog = logger.ghostLogFn(state);
-  //     const deleteLogBlock = logger.deleteLogBlockFn(state);
-  //     injectBlank().then(ghostLog).then(injectText).then(save).then(deleteLogBlock);
-  //   }
-
-//  if point is within commented form, bail.
-//     select outer form
-//     get range of selection
-//     get range of selection-2 <-> selection
-//     is it "#_" ?
-
-
-//  if point is within logwrap, bail unless its unwrap
-//     select outer form
-//     get range of selection
-//     get range of selection+3
-//     is it "(#_?" ?
-
-
-//  index all strings
-//  eval current expression:
-//    if point is within string, select current string
-//    else select current form
-//  logwrap current expression:
-//    if point is within string, select current string
-//    else select current form
-
-
-  // let logBlocks = logger.rrLogBlocks(editor);
-
-  // if(logBlocks.length){
-  //   vscode.window.activeTextEditor.edit(edit => {
-  //     logBlocks.reverse().forEach( range => {
-  //         let r = new vscode.Range(editor.document.positionAt(range[0]), editor.document.positionAt(range[1]))
-  //         console.log("range!", r)
-  //         edit.replace(r, "");
-  //     });
-  //   })
-  // }else{
-  //   // Create object that represents the current buffer
-  //   const state = bufferState.getBufferState(editor, userArg);
-
-  //   // If file is not .cljs or .cljc, show warning and exit
-  //   if (!state) {
-  //     vscode.window.showWarningMessage("repl-repl:  File extention must be .cljs or .cljc.")
-  //     return;
-  //   }
-
-  //   state.logTuple = control.flow(state);
-  //   console.log("state", state);
-
-  //   if (state.logTuple && state.logTuple[1] === "warning") {
-  //     state.warning = "repl-repl: "+state.logTuple[0];
-  //   }
-
-  //   util.logStateInfo(state);
-  //   state.copied = state[state.logTuple[0]];
-
-  //   // CF
-  //   if (state.warning){
-  //     vscode.window.showWarningMessage(state.warning)
-  //   }else if (state.rlw){
-  //     //console.log(state.blackListedRange);
-  //     const replaceLogWrap = logger.replaceLogWrapFn(state);
-  //     //const save = util.saveFileFn(state);
-  //     replaceLogWrap()
-  //   }else if(state.lwof || state.lwcf || state.lwce){
-  //     state.logBlock = logger.logWrap(state);
-  //     const injectNew = logger.injectNewFn(state);
-  //     injectNew()
-  //   }else{
-  //     // flash highlight on form to be evaluated.
-  //     decorate.highlightEvalForm(state);
-  //     const newSurf = logger.logBlock(state);
-  //     state.logBlock = newSurf;
-  //     const injectBlank = logger.insertBlankTextFn(state, newSurf);
-  //     const injectText = logger.insertTextFn(state, newSurf);
-  //     const save = util.saveFileFn(state);
-  //     const ghostLog = logger.ghostLogFn(state);
-  //     const deleteLogBlock = logger.deleteLogBlockFn(state);
-  //     injectBlank().then(ghostLog).then(injectText).then(save).then(deleteLogBlock);
-  //   }
-  // }
 }
 
 // extension is activated the very first time the command is executed

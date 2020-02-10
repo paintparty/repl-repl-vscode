@@ -1,5 +1,4 @@
 const vscode = require('vscode');
-//const util = require('./util');
 
 // reserve various defs
 function getCopiedEscapeDefs(copied) {
@@ -20,35 +19,6 @@ function getCopiedEscapeDefs(copied) {
   }
 }
 
-function warningBlock(state) {
-  return '(js/console.clear)\n(enable-console-print!)\n(js/console.warn\n  "' + state.warning + '")';
-}
-
-function logWrapBU(state) {
-  if (state.warning) {
-    return warningBlock(state);
-  }
-  let copied = state[state.logTuple[0]];
-  let surfStart = '#_?';
-
-  // quotes and newlines for cljs
-  let sp = ' ';
-
-  // escape defs
-  let thingToEval = state.isJsComment ?
-    '(js/eval "' + state.jsComment + '")'
-    :
-    getCopiedEscapeDefs(copied);
-
-  // joiner changed to sp
-  let applyLog = `(js/console.log "\\n" (quote ${thingToEval}) "\\n\\n =>" ${thingToEval} "\\n\\n")`;
-  let isCljc = state.fileExt === "cljc";
-  let cljcApplyLog = isCljc ? '#?(:cljs ' + applyLog + ')' : applyLog;
-  let newSurf = ['('+surfStart, 'do', cljcApplyLog, '#_.', thingToEval, '#_..)'].join(sp);
-
-  return newSurf;
-}
-
 function logWrap(p) {
   // escape defs
   let thingToEval = p.isJsComment ?
@@ -66,7 +36,7 @@ function logWrap(p) {
 }
 
 
-function logBlock2(o) {
+function logBlock(o) {
   let copied = o.textToEval;
   let surfStart = '#___rr-start';
   let surfEnd = '#___rr-end';
@@ -134,7 +104,7 @@ function replaceLogWrapFn (p) {
   };
 }
 
-function ghostLogFn2(p) {
+function ghostLogFn(p) {
   return () => {
     let doc = vscode.window.activeTextEditor.document;
     let newBuffText = doc.getText();
@@ -155,7 +125,7 @@ function ghostLogFn2(p) {
 }
 
 
-function insertTextFn2(p, newSurf) {
+function insertTextFn(p, newSurf) {
   return () => {
     return vscode.window.activeTextEditor.edit(edit => {
       edit.replace(p.logBlockRange, newSurf);
@@ -163,7 +133,7 @@ function insertTextFn2(p, newSurf) {
   };
 }
 
-function insertBlankTextFn2(p, newSurf) {
+function insertBlankTextFn(p, newSurf) {
   return () => {
     return vscode.window.activeTextEditor.edit(edit => {
       edit.insert(p.endPos, newSurf.replace(/./gm, ' '));
@@ -172,7 +142,7 @@ function insertBlankTextFn2(p, newSurf) {
 }
 
 
-function deleteText2(range, p) {
+function deleteText(range, p) {
   vscode.window.activeTextEditor.edit(
     edit => {
       edit.delete(range);
@@ -202,7 +172,7 @@ function deleteLogBlockFn(p) {
     function deleteLogBlock(promise) {
       const deleteRange = getDeleteRange(p);
       lo("deleteLogBlockRange!", p.logBlockRange);
-      setTimeout(deleteText2, 500, deleteRange, p);
+      setTimeout(deleteText, 500, deleteRange, p);
     }
   )
 }
@@ -233,12 +203,11 @@ function rrLogBlocks () {
 }
 
 exports.rrLogBlocks = rrLogBlocks;
-exports.warningBlock = warningBlock;
-exports.logBlock2 = logBlock2;
+exports.logBlock = logBlock;
 exports.logWrap = logWrap;
-exports.insertTextFn2 = insertTextFn2;
-exports.insertBlankTextFn2 = insertBlankTextFn2;
-exports.ghostLogFn2 = ghostLogFn2;
+exports.insertTextFn = insertTextFn;
+exports.insertBlankTextFn = insertBlankTextFn;
+exports.ghostLogFn = ghostLogFn;
 exports.deleteLogBlockFn = deleteLogBlockFn;
 exports.deleteCruftFn = deleteCruftFn;
 exports.injectNewFn = injectNewFn;
