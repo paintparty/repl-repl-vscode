@@ -1,5 +1,5 @@
 const vscode = require('vscode');
-const util = require('./util');
+//const util = require('./util');
 const colors = {
   red : "rgba(255, 193, 193, 0.3)",
   violet: "rgba(223, 193, 255, 0.3)",
@@ -10,11 +10,25 @@ const colors = {
   orange : "rgba(246, 194, 113, 0.3)"
 };
 
+function convertHex(hex) {
+  if(hex){
+    var hex = hex.replace('#', '');
+    let r = parseInt(hex.substring(0, 2), 16);
+    let g = parseInt(hex.substring(2, 4), 16);
+    let b = parseInt(hex.substring(4, 6), 16);
+    let a = hex.substring(6, 8);
+    let aInt = parseInt(a);
+    let opacity = (a.length === 2 && (aInt !== NaN) && (typeof aInt === 'number')) ? (0.7 * aInt/100) : 1;
+    let result = 'rgba(' + r + ',' + g + ',' + b + ',' + opacity + ')';
+    return result;
+  }
+}
+
 // create a decorator type that we use to decorate evaled form
 const workSpaceColorCustomizations = vscode.workspace.getConfiguration('workbench.colorCustomizations');
 const selectionBackgroundHex = (workSpaceColorCustomizations['editor.selectionBackground']);
 const selectionBackground = selectionBackgroundHex?
-  util.convertHex(selectionBackgroundHex) : 'rgb(92,255,160,0.5)';
+  convertHex(selectionBackgroundHex) : 'rgb(92,255,160,0.5)';
 
 function evalFormHighlight(color){
   let isUserSelectBg = (color === "selectionBackground");
@@ -38,43 +52,47 @@ function evalFormHighlight(color){
 }
 
 function clearEvalFormHighlight(highlight) {
-  let activeEditor = vscode.window.activeTextEditor;
-  activeEditor.setDecorations(highlight, []);
+  vscode.window.activeTextEditor.setDecorations(highlight, []);
 }
 
-function changeHighlight(state, color, highlight, range){
+function changeHighlight(color, highlight, range){
   clearEvalFormHighlight(highlight);
   highlight = evalFormHighlight(color);
-  state.editor.setDecorations(highlight, [range]);
+  vscode.window.activeTextEditor.setDecorations(highlight, [range]);
   return highlight;
 }
+// function changeHighlight(state, color, highlight, range){
+//   clearEvalFormHighlight(highlight);
+//   highlight = evalFormHighlight(color);
+//   state.editor.setDecorations(highlight, [range]);
+//   return highlight;
+// }
 
-// callback triangle
-function evalFormHighlightAnimation(state, range){
+function evalFormHighlightAnimation(range){
   let highlight = evalFormHighlight("transparent");
-  state.editor.setDecorations(highlight, [range]);
+  vscode.window.activeTextEditor.setDecorations(highlight, [range]);
   let interval = 50;
   setTimeout(
     () => {
-      highlight = changeHighlight(state, colors.cyan, highlight, range);
+      highlight = changeHighlight(colors.cyan, highlight, range);
       setTimeout(
         () => {
-          highlight = changeHighlight(state, colors.green, highlight, range);
+          highlight = changeHighlight( colors.green, highlight, range);
           setTimeout(
             () => {
-              highlight = changeHighlight(state, colors.yellow, highlight, range);
+              highlight = changeHighlight( colors.yellow, highlight, range);
               setTimeout(
                 () => {
-                  highlight = changeHighlight(state, colors.orange, highlight, range);
+                  highlight = changeHighlight(colors.orange, highlight, range);
                   setTimeout(
                     () => {
-                      highlight = changeHighlight(state, colors.red, highlight, range);
+                      highlight = changeHighlight(colors.red, highlight, range);
                       setTimeout(
                         () => {
-                          highlight = changeHighlight(state, colors.violet, highlight, range);
+                          highlight = changeHighlight(colors.violet, highlight, range);
                           setTimeout(
                             () => {
-                              highlight = changeHighlight(state, colors.blue, highlight, range);
+                              highlight = changeHighlight(colors.blue, highlight, range);
                               setTimeout(
                                 () => {
                                   clearEvalFormHighlight(highlight);
@@ -95,12 +113,66 @@ function evalFormHighlightAnimation(state, range){
     },
     interval);
 }
+// callback triangle
+// function evalFormHighlightAnimation(state, range){
+//   let highlight = evalFormHighlight("transparent");
+//   state.editor.setDecorations(highlight, [range]);
+//   let interval = 50;
+//   setTimeout(
+//     () => {
+//       highlight = changeHighlight(state, colors.cyan, highlight, range);
+//       setTimeout(
+//         () => {
+//           highlight = changeHighlight(state, colors.green, highlight, range);
+//           setTimeout(
+//             () => {
+//               highlight = changeHighlight(state, colors.yellow, highlight, range);
+//               setTimeout(
+//                 () => {
+//                   highlight = changeHighlight(state, colors.orange, highlight, range);
+//                   setTimeout(
+//                     () => {
+//                       highlight = changeHighlight(state, colors.red, highlight, range);
+//                       setTimeout(
+//                         () => {
+//                           highlight = changeHighlight(state, colors.violet, highlight, range);
+//                           setTimeout(
+//                             () => {
+//                               highlight = changeHighlight(state, colors.blue, highlight, range);
+//                               setTimeout(
+//                                 () => {
+//                                   clearEvalFormHighlight(highlight);
+//                                 },
+//                                 interval);
+//                             },
+//                             interval);
+//                         },
+//                         interval);
+//                     },
+//                     interval);
+//                 },
+//                 interval);
+//             },
+//             interval);
+//         },
+//         interval);
+//     },
+//     interval);
+// }
 
-function highlightEvalForm(state) {
-  if (state.logTuple && state.logTuple[1] !== "warning") {
-    let rangeToHighlight = state[state.logTuple[2]]
-    evalFormHighlightAnimation(state, rangeToHighlight);
-  }
+// function highlightEvalForm(state) {
+//   if (state.logTuple && state.logTuple[1] !== "warning") {
+//     let rangeToHighlight = state[state.logTuple[2]]
+//     evalFormHighlightAnimation(state, rangeToHighlight);
+//   }
+// }
+
+function highlightEvalForm(rangeToHighlight) {
+  evalFormHighlightAnimation(rangeToHighlight);
+  // if (state.logTuple && state.logTuple[1] !== "warning") {
+  //   let rangeToHighlight = state[state.logTuple[2]]
+  //   evalFormHighlightAnimation(state, rangeToHighlight);
+  // }
 }
 
 exports.clearEvalFormHighlight = clearEvalFormHighlight;

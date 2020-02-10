@@ -142,6 +142,7 @@ function endPos(state) {
   return endPos;
 }
 
+
 function idxForPos(state, pos) {
   let idx = state.buff.offsetAt(pos);
   return idx;
@@ -190,7 +191,7 @@ function charAtIdx(state, idx) {
 function getTextInPointRange(state, range) {
   let newRange = new vscode.Range(range.start, range.end);
   let textInRange = state.buff.getText(newRange);
-  return textInRange;
+  return textInRange
 }
 // VS Code specific end
 
