@@ -43,7 +43,6 @@ function _vsSendCursorToPos(pos, isEnd){
   let adj = isEnd? 1 : 0;
   let newPos = posForIdx(idxForPos(pos) - adj);
   let s = new vscode.Selection(newPos, newPos);
-  //lo("_vsSendCursorToPos", pos);
   vscode.window.activeTextEditor.selection = s;
 }
 
@@ -52,7 +51,6 @@ function vsSendCursorToPos(pos){
 }
 
 function vsSendCursorToEndPos(pos){
-  //lo("_vsSendCursorToEndPos", pos);
   _vsSendCursorToPos(pos, true);
 }
 
@@ -64,24 +62,6 @@ function lv (s, v){
   console.log("\n\n"+s, v)
 }
 
-function getFormInfo(text){
-  let firstChar = text.charAt(0);
-  let lastChar = text.charAt(text.length-1);
-  let isMap = ( firstChar === '{' && lastChar === '}' );
-  let isSexp = ( firstChar === '(' && lastChar === ')' );
-  let isVector = ( firstChar === '[' && lastChar === ']' );
-  let isString = ( firstChar === '"' && lastChar === '"' );
-  let isForm = isMap || isSexp || isVector;
-  return {
-    firstChar: firstChar,
-    lastChar: lastChar,
-    isMap: isMap,
-    isSexp: isSexp,
-    isVector: isVector,
-    isString: isString,
-    isForm: isForm
-  }
-}
 
 function isTextInsideString(){
   let textRange = selectionRange();
@@ -94,10 +74,6 @@ function isTextInsideString(){
   return followingChar==='"' && precedingChar==='"';
 }
 
-function isInsideForm(){
-  vscode.commands.executeCommand("paredit.rangeForDefun");
-  return getFormInfo(selectedText()).isForm;
-}
 
 function fileExt() {
   let fileExtMatch = vscode.window.activeTextEditor.document.fileName.match(/.(cljs|cljc)$/);
@@ -123,20 +99,122 @@ function saveFileFn(){
 /* Invalidate if "#_" */
 function validateText(s, range){
   let editor = vscode.window.activeTextEditor;
+
+  // return null if text is one of these: [# ' "]
   if(["#", "'", "\""].includes(s)){
     return null;
+
+  // return null if `#_` is used to comment out form
   }else if(s === "_"){
     let textRangeStartIdx = editor.document.offsetAt(range.start);
     let precedingChar = (textRangeStartIdx !== 0) ? charAtIdx(textRangeStartIdx-1) : null;
     if (precedingChar==="#"){
       return null
     }
+
+  // return null if comment
   }else if(s.match(/^;/)){
-    //lv("starts with ;", s)
     return null;
+
+  // return null if % binding inside anon fn
+  }else if(s.match(/^%/)){
+    return null;
+
+  // return valid text
   }else{
     return s;
   }
+}
+
+function jsComment(o){
+  vsSendCursorToPos(o.textRange.start)
+  vscode.commands.executeCommand("paredit.forwardDownSexp");
+  // TODO ADD something following \s\S ?? or make regex find the index ...
+  let m = /^\(comment\s+\:js\s+([\s\S]+)/gm;
+  if(m.test(o.text)){
+    let i = o.text.indexOf(":js")
+    console.log("i", i);
+    let newStartPos = posForIdx(idxForPos(o.textRange.start) + i + 4)
+    let newEndPos = posForIdx(idxForPos(o.textRange.end) - 1)
+    let s = new vscode.Selection(newStartPos, newEndPos);
+    vscode.window.activeTextEditor.selection = s;
+    console.log("jsCommentText", selectedText());
+    return selectedText().trim();
+  }
+}
+
+function getFormInfo(text){
+  let firstChar = text.charAt(0);
+  let lastChar = text.charAt(text.length-1);
+  let isMap = ( firstChar === '{' && lastChar === '}' );
+  let isSexp = ( firstChar === '(' && lastChar === ')' );
+  let isVector = (firstChar === '[' && lastChar === ']' );
+  let isString = ( firstChar === '"' && lastChar === '"' );
+  let isForm = isMap || isSexp || isVector;
+  return {
+    firstChar: firstChar,
+    lastChar: lastChar,
+    isMap: isMap,
+    isSexp: isSexp,
+    isVector: isVector,
+    isString: isString,
+    isForm: isForm
+  }
+}
+
+function isInsideForm(){
+  vscode.commands.executeCommand("paredit.rangeForDefun");
+  return getFormInfo(selectedText()).isForm;
+}
+
+function textRangeCharsAndForms(text, textRange){
+  let editor = vscode.window.activeTextEditor;
+  let textRangeStartIdx = editor.document.offsetAt(textRange.start);
+  let textRangeEndIdx = editor.document.offsetAt(textRange.end);
+  let precedingChar = (textRangeStartIdx !== 0) ? charAtIdx(textRangeStartIdx-1) : null;
+  let preceding2Char = (textRangeStartIdx > 1) ? charAtIdx(textRangeStartIdx-2) : null;
+  let preceding3Char = (textRangeStartIdx > 2) ? charAtIdx(textRangeStartIdx-3) : null;
+  let { firstChar, lastChar, isMap, isSexp, isVector, isString, isForm } = getFormInfo(text)
+  let isSet = isMap && firstChar === "{" && precedingChar === "#";
+  let isAnonFn = isSexp && precedingChar === "#";
+  let isList = isSexp && precedingChar === "'";
+  return {
+    textRangeStartIdx,
+    textRangeEndIdx,
+    precedingChar,
+    preceding2Char,
+    preceding3Char,
+    firstChar,
+    lastChar,
+    isMap,
+    isSexp,
+    isSet,
+    isVector,
+    isString,
+    isForm,
+    isAnonFn,
+    isList}
+}
+
+function textRangeDetails(){
+  let text = selectedText();
+  let textRange = selectionRange();
+  return Object.assign({textRange}, textRangeCharsAndForms(text, textRange));
+}
+
+function consoleLogWrappedText(o){
+  //clear selection and place cursor on last index in selection
+  vsSendCursorToEndPos(o.textRange.end)
+  //clear selection and place cursor on last index in selection
+  vscode.commands.executeCommand("paredit.backwardSexp");
+  vscode.commands.executeCommand("paredit.backwardSexp");
+  vscode.commands.executeCommand("paredit.sexpRangeExpansion");
+  let {textRange, isSet, isAnonFn, isList} = textRangeDetails();
+  let newLwTextRange = (isSet || isList || isAnonFn) ?
+    new vscode.Range(posForIdx(idxForPos(textRange.start) - 1), textRange.end)
+    :
+    textRange
+  return vscode.window.activeTextEditor.document.getText(newLwTextRange);
 }
 
 function profile(userArg){
@@ -178,9 +256,6 @@ function profile(userArg){
   let text = validateText(selectedText(), o.textRange);
   o.text = text;
 
-  lo("textRange", o.textRange);
-  //lv("text", o.text);
-
   if(!o.text){
     o.textRange = null
   }
@@ -190,8 +265,6 @@ function profile(userArg){
     vscode.commands.executeCommand("paredit.forwardSexp");
     let offsetIdx = editor.document.offsetAt(editor.selection.active);
     let char = editor.document.getText().substring(offsetIdx, offsetIdx + 1);
-    //lv("idx2", offsetIdx);
-    //lv("char", char);
     if(["(", "{"].includes(char)){
       o.text = null
       const formType = (char==="(") ? "list or anonymous function" : "set";
@@ -200,23 +273,11 @@ function profile(userArg){
   }
 
   if(o.text){
-    o.textRangeStartIdx = editor.document.offsetAt(o.textRange.start);
-
-    o.textRangeEndIdx = editor.document.offsetAt(o.textRange.end);
-
-    o.precedingChar = (o.textRangeStartIdx !== 0) ? charAtIdx(o.textRangeStartIdx-1) : null;
-    o.preceding2Char = (o.textRangeStartIdx > 1) ? charAtIdx(o.textRangeStartIdx-2) : null;
-    o.preceding3Char = (o.textRangeStartIdx > 2) ? charAtIdx(o.textRangeStartIdx-3) : null;
-
+    let details = textRangeCharsAndForms(o.text, o.textRange)
+    //MUTATING o
+    Object.assign(o, details);
     let p2Chars = o.preceding2Char + o.precedingChar;
     o.isCommentedForm = ( p2Chars === "#_" ) || ( o.preceding3Char + p2Chars === "#_\n" );
-
-    o.firstChar = o.text.charAt(0);
-    o.lastChar = o.text.charAt(o.text.length-1);
-    o.isMap = ( o.firstChar === '{' && o.lastChar === '}' );
-    o.isSexp = ( o.firstChar === '(' && o.lastChar === ')' );
-    o.isVector = ( o.firstChar === '[' && o.lastChar === ']' );
-    o.isForm = o.isMap || o.isSexp || o.isVector;
 
     if(!o.isForm){
       o.isStringOutsideForm = o.firstChar==='"' && o.lastChar==='"';
@@ -232,51 +293,9 @@ function profile(userArg){
       //convert to position +1
       o.isConsoleLogWrap = isLogWrapRe.test(o.text);
       if(o.isConsoleLogWrap){
-        console.log("is ConsoleLogWrap!!!!!")
-        //clear selection and place cursor on last index in selection
-        vsSendCursorToEndPos(o.textRange.end)
-
-        //clear selection and place cursor on last index in selection
-        vscode.commands.executeCommand("paredit.backwardSexp");
-        vscode.commands.executeCommand("paredit.backwardSexp");
-        vscode.commands.executeCommand("paredit.sexpRangeExpansion");
-        o.consoleLogWrappedText = selectedText();
-
-        let lwTextRange = selectionRange();
-        let lwTextRangeStartIdx = editor.document.offsetAt(lwTextRange.start);
-        let precedingChar = (lwTextRangeStartIdx !== 0) ? charAtIdx(lwTextRangeStartIdx-1) : null;
-        let firstChar = o.consoleLogWrappedText.charAt(0);
-        let lastChar = o.consoleLogWrappedText.charAt(o.consoleLogWrappedText.length-1);
-        let isMap = ( firstChar === '{' && lastChar === '}' );
-        let isSexp = ( firstChar === '(' && lastChar === ')' );
-        let isSet = isMap && firstChar === "{" && precedingChar === "#";
-        let isAnonFn = isSexp && precedingChar === "#";
-        let isList = isSexp && precedingChar === "'";
-        let newLwTextRange = (isSet || isList || isAnonFn) ?
-          new vscode.Range(posForIdx(idxForPos(lwTextRange.start) - 1), lwTextRange.end)
-          :
-          lwTextRange
-        //lo("lwTextRange", lwTextRange)
-        //lo("newLwTextRange", newLwTextRange)
-        o.consoleLogWrappedText = vscode.window.activeTextEditor.document.getText(newLwTextRange);
+        o.consoleLogWrappedText = consoleLogWrappedText(o);
       }
-      o.jsComment = (function(){
-        vsSendCursorToPos(o.textRange.start)
-        vscode.commands.executeCommand("paredit.forwardDownSexp");
-
-        // TODO ADD something following \s\S ?? or make regex find the index ...
-        let m = /^\(comment\s+\:js\s+([\s\S]+)/gm;
-        if(m.test(o.text)){
-          let i = o.text.indexOf(":js")
-          console.log("i", i);
-          let newStartPos = posForIdx(idxForPos(o.textRange.start) + i + 4)
-          let newEndPos = posForIdx(idxForPos(o.textRange.end) - 1)
-          let s = new vscode.Selection(newStartPos, newEndPos);
-          vscode.window.activeTextEditor.selection = s;
-          console.log("jsCommentText", selectedText());
-          return selectedText().trim();
-        }
-      }());
+      o.jsComment = jsComment(o);
     }
     o.textRange = (o.isSet || o.isList || o.isAnonFn) ?
       new vscode.Range(posForIdx(idxForPos(o.textRange.start) - 1), o.textRange.end)
@@ -299,7 +318,6 @@ function profileEvalFn(userArg){
     let leadingChar = editor.document.lineAt(cursorPos.line).text.trim().charAt(0);
     let isCommentLine = leadingChar === ";"
     if (isCommentLine){
-      //lv("", "commented line!");
       vscode.window.showWarningMessage("repl-repl: Commented line")
       return;
     }
@@ -327,7 +345,6 @@ function profileEvalFn(userArg){
       }else{
         decorate.highlightEvalForm(p.textRange);
         const newSurf  = logger.logBlock(p);
-        //lv("logBlock", newSurf);
         const injectBlank = logger.insertBlankTextFn(p, newSurf);
         const ghostLog = logger.ghostLogFn(p);
         const injectText = logger.insertTextFn(p, newSurf);
