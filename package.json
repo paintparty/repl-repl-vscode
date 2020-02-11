@@ -3,7 +3,7 @@
     "displayName": "repl-repl",
     "description": "Integrated ClojureScript REPL",
     "icon": "icon.png",
-    "version": "0.5.1",
+    "version": "0.5.2",
     "publisher": "paintparty",
     "author": {
         "name": "paintparty"
