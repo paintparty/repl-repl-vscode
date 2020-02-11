@@ -97,12 +97,24 @@ function saveFileFn(){
   );
 }
 
+function isStartOfSpecialForm(s, range){
+  let editor = vscode.window.activeTextEditor;
+  // return null if text is one of these: [# ' "]
+  if(["#", "'"].includes(s)){
+    let textRangeStartIdx = editor.document.offsetAt(range.start);
+    let followingChar = charAtIdx(textRangeStartIdx+1);
+    return ["(", "{"].includes(followingChar);
+   }
+}
+
 /* Invalidate if "#_" */
 function validateText(s, range){
   let editor = vscode.window.activeTextEditor;
 
   // return null if text is one of these: [# ' "]
   if(["#", "'", "\""].includes(s)){
+    let textRangeStartIdx = editor.document.offsetAt(range.start);
+    let followingChar = charAtIdx(textRangeStartIdx+1);
     return null;
 
   // return null if `#_` is used to comment out form
@@ -129,7 +141,7 @@ function validateText(s, range){
 
 function jsComment(o){
   vsSendCursorToPos(o.textRange.start)
-  vscode.commands.executeCommand("repl-repl.utilforwardDownSexp");
+  vscode.commands.executeCommand("repl-repl.utilForwardDownSexp");
   // TODO ADD something following \s\S ?? or make regex find the index ...
   let m = /^\(comment\s+\:js\s+([\s\S]+)/gm;
   if(m.test(o.text)){
@@ -164,7 +176,7 @@ function getFormInfo(text){
 }
 
 function isInsideForm(){
-  vscode.commands.executeCommand("paredit.rangeForDefun");
+  vscode.commands.executeCommand("repl-repl.utilRangeForDefun");
   return getFormInfo(selectedText()).isForm;
 }
 
@@ -194,7 +206,8 @@ function textRangeCharsAndForms(text, textRange){
     isString,
     isForm,
     isAnonFn,
-    isList}
+    isList
+  }
 }
 
 function textRangeDetails(){
@@ -230,10 +243,13 @@ function profile(userArg){
     isJSComment: false,
     ogPoint: cursorPos()
   };
-
-  if(["log-wrap-outermost-form", "eval-outermost-form", "remove-log-wrap"].includes(userArg)) {
-    vscode.commands.executeCommand("paredit.rangeForDefun");
-  }else if(["log-wrap-current-form", "eval-current-form"].includes(userArg)) {
+  lo("profile o", o)
+  if(["log-wrap-outermost-form",
+      "eval-outermost-form",
+      "remove-log-wrap"].includes(userArg)) {
+    vscode.commands.executeCommand("repl-repl.utilRangeForDefun");
+  }else if(["log-wrap-current-form",
+            "eval-current-form"].includes(userArg)) {
     if (isInsideForm()) {
       vsSendCursorToPos(o.ogPoint);
       let isForm = false;
@@ -245,12 +261,23 @@ function profile(userArg){
   }else if(["log-wrap-current-expression", "eval-current-expression"].includes(userArg)) {
     vsSendCursorToPos(o.ogPoint);
     vscode.commands.executeCommand("repl-repl.utilSexpRangeExpansion");
-    // TODO make this work for strings like "   what " (where you have some trimmable whitespace)
+    // TODO make this work for strings like "   wtf " (where you have some trimmable whitespace)
     if(isTextInsideString()) {
-      vscode.commands.executeCommand("paredit.sexpRangeExpansion");
+      vscode.commands.executeCommand("repl-repl.utilSexpRangeExpansion");
     }else{
 
     }
+  }
+
+  // If we try to eval-outermost-form (or eval-current-form on top-level)
+  // while point is on the first 2 chars of a set, list, or anon fn,
+  // we will need to modify selection
+  if(isStartOfSpecialForm(selectedText(), selectionRange())){
+    vsSendCursorToPos(o.ogPoint);
+    vscode.commands.executeCommand("repl-repl.utilForwardDownSexp");
+    vscode.commands.executeCommand("repl-repl.utilSexpRangeExpansion");
+    vscode.commands.executeCommand("repl-repl.utilSexpRangeExpansion");
+    vscode.commands.executeCommand("repl-repl.utilSexpRangeExpansion");
   }
 
   o.textRange = selectionRange();
@@ -260,6 +287,9 @@ function profile(userArg){
   if(!o.text){
     o.textRange = null
   }
+
+  lo("textrange", o.textRange)
+  lo("text", o.text)
 
   if(["'", "#"].includes(o.text)){
     vsSendCursorToPos(o.ogPoint);
@@ -312,7 +342,6 @@ function profileEvalFn(userArg){
   return () => {
     let editor = vscode.window.activeTextEditor;
     let cursorPos =  editor.selection.active;
-    //lv("userArg:", userArg)
 
     // If point is on commented line, bail.
     // If first char on line is semicolon
@@ -324,7 +353,7 @@ function profileEvalFn(userArg){
     }
 
     let p = profile(userArg);
-    //lo("profile", p);
+    ///lo("profile", p);
 
     if(p.textRange) {
       if(p.isConsoleLogWrap){
@@ -418,14 +447,12 @@ function replrepl (userArg) {
   if (!editor){
     return;
   }
-
   const logBlocks = logger.rrLogBlocks();
   const profileEval = profileEvalFn(userArg)
   if(logBlocks.length) {
     const deleteCruft = logger.deleteCruftFn(logBlocks);
     deleteCruft().then(profileEval);
   }else{
-    //lv("else", 12)
     profileEval();
   }
 }
