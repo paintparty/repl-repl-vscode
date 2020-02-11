@@ -20,25 +20,25 @@ This extension will also work with [shadow-cljs](http://shadow-cljs.org/) or [bo
 
 Based on where the cursor is, you can do one of the following:
 
-***Evaluate Outermost Form***
+***Evaluate Outermost Form***<br>
 Default keybinding: `cmd-enter` (mac), `alt-enter` (windows & linux)
 
-***Evaluate Current Form***
+***Evaluate Current Form***<br>
 Default keybinding: `cmd-alt-enter` (mac), `alt-ctrl-enter` (windows & linux)
 
-***Evaluate Current Expression***
+***Evaluate Current Expression***<br>
 Default keybinding: `ctrl-cmd-alt-enter` (mac), `shift-ctrl-alt-enter` (windows & linux)
 
-***Log Wrap Outer Form***
+***Log Wrap Outer Form***<br>
 This command will wrap the outermost form in an annotated `js/console.log` form.
 
-***Log Wrap Current Form***
+***Log Wrap Current Form***<br>
 This command will wrap the current form in an annotated `js/console.log` form.
 
-***Log Wrap Current Expression***
+***Log Wrap Current Expression***<br>
 This command will wrap the current expression in an annotated `js/console.log` form.
 
-***Remove Log Wrap***
+***Remove Log Wrap***<br>
 This command will remove the `js/console.log` form around an expression or form that was previously wrapped by one of the log wrapping commands listed above.
 
 Feel free customize these keybindings to suit your needs.
