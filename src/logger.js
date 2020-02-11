@@ -171,7 +171,7 @@ function deleteLogBlockFn(p) {
   return (
     function deleteLogBlock(promise) {
       const deleteRange = getDeleteRange(p);
-      lo("deleteLogBlockRange!", p.logBlockRange);
+      //lo("deleteLogBlockRange!", p.logBlockRange);
       setTimeout(deleteText, 500, deleteRange, p);
     }
   )
@@ -183,7 +183,7 @@ function deleteCruftFn(logBlocks) {
     return editor.edit(edit => {
       logBlocks.reverse().forEach( range => {
         let r = new vscode.Range(editor.document.positionAt(range[0]), editor.document.positionAt(range[1]));
-        lo("range!", r);
+        //lo("range!", r);
         edit.replace(r, "");
       });
     });

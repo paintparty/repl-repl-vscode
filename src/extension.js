@@ -2,6 +2,7 @@
 const vscode = require('vscode');
 const logger = require('./logger');
 const decorate = require('./decorate');
+let pe = require('paredit.js');
 
 function selectionRange() {
   let editor = vscode.window.activeTextEditor;
@@ -128,7 +129,7 @@ function validateText(s, range){
 
 function jsComment(o){
   vsSendCursorToPos(o.textRange.start)
-  vscode.commands.executeCommand("paredit.forwardDownSexp");
+  vscode.commands.executeCommand("repl-repl.utilforwardDownSexp");
   // TODO ADD something following \s\S ?? or make regex find the index ...
   let m = /^\(comment\s+\:js\s+([\s\S]+)/gm;
   if(m.test(o.text)){
@@ -206,9 +207,9 @@ function consoleLogWrappedText(o){
   //clear selection and place cursor on last index in selection
   vsSendCursorToEndPos(o.textRange.end)
   //clear selection and place cursor on last index in selection
-  vscode.commands.executeCommand("paredit.backwardSexp");
-  vscode.commands.executeCommand("paredit.backwardSexp");
-  vscode.commands.executeCommand("paredit.sexpRangeExpansion");
+  vscode.commands.executeCommand("repl-repl.utilBackwardSexp");
+  vscode.commands.executeCommand("repl-repl.utilBackwardSexp");
+  vscode.commands.executeCommand("repl-repl.utilSexpRangeExpansion");
   let {textRange, isSet, isAnonFn, isList} = textRangeDetails();
   let newLwTextRange = (isSet || isList || isAnonFn) ?
     new vscode.Range(posForIdx(idxForPos(textRange.start) - 1), textRange.end)
@@ -237,13 +238,13 @@ function profile(userArg){
       vsSendCursorToPos(o.ogPoint);
       let isForm = false;
       while (!isForm) {
-        vscode.commands.executeCommand("paredit.sexpRangeExpansion");
+        vscode.commands.executeCommand("repl-repl.utilSexpRangeExpansion");
         isForm = getFormInfo(selectedText()).isForm;
       }
     }
   }else if(["log-wrap-current-expression", "eval-current-expression"].includes(userArg)) {
     vsSendCursorToPos(o.ogPoint);
-    vscode.commands.executeCommand("paredit.sexpRangeExpansion");
+    vscode.commands.executeCommand("repl-repl.utilSexpRangeExpansion");
     // TODO make this work for strings like "   what " (where you have some trimmable whitespace)
     if(isTextInsideString()) {
       vscode.commands.executeCommand("paredit.sexpRangeExpansion");
@@ -262,7 +263,7 @@ function profile(userArg){
 
   if(["'", "#"].includes(o.text)){
     vsSendCursorToPos(o.ogPoint);
-    vscode.commands.executeCommand("paredit.forwardSexp");
+    vscode.commands.executeCommand("repl-repl.utilForwardSexp");
     let offsetIdx = editor.document.offsetAt(editor.selection.active);
     let char = editor.document.getText().substring(offsetIdx, offsetIdx + 1);
     if(["(", "{"].includes(char)){
@@ -361,11 +362,63 @@ function profileEvalFn(userArg){
   }
 }
 
+function select (editor, pos) {
+  let start, end;
+
+  if (typeof pos === "number"){
+      start = end = pos;
+  }
+  else if (pos instanceof Array){
+      start = pos[0], end = pos[1];
+  }
+
+  let pos1 = editor.document.positionAt(start),
+      pos2 = editor.document.positionAt(end),
+      sel  = new vscode.Selection(pos1, pos2);
+
+  editor.selection = sel;
+  editor.revealRange(sel);
+}
+
+
+const navigate = (fn, ...args) => {
+  return ({textEditor, ast, selection}) => {
+        let res = fn(ast, selection.cursor, ...args);
+        select(textEditor, res);
+  }
+}
+
+const navigateRange = (fn, ...args) => {
+  return ({textEditor, ast, selection}) => {
+        let res = fn(ast, selection.start, selection.end, ...args);
+        select(textEditor, res);
+  }
+}
+
+function getSelection (editor) {
+  return { start:  editor.document.offsetAt(editor.selection.start),
+           end:    editor.document.offsetAt(editor.selection.end),
+           cursor: editor.document.offsetAt(editor.selection.active) };
+}
+
+function wrapPareditCommand(fn) {
+  return () => {
+      let textEditor = vscode.window.activeTextEditor;
+      let src = textEditor.document.getText();
+      fn({ textEditor: textEditor,
+           src:        src,
+           ast:        pe.parse(src),
+           selection:  getSelection(textEditor) });
+  }
+}
+
+
 function replrepl (userArg) {
   let editor = vscode.window.activeTextEditor;
   if (!editor){
     return;
   }
+
   const logBlocks = logger.rrLogBlocks();
   const profileEval = profileEvalFn(userArg)
   if(logBlocks.length) {
@@ -386,7 +439,22 @@ function activate(context) {
   // The command has been defined in the package.json file
   // Now provide the implementation of the command with  registerCommand
   // The commandId parameter must match the command field in package.json
+  let utilSexpRangeExpansion = vscode.commands.registerCommand('repl-repl.utilSexpRangeExpansion',
+    wrapPareditCommand(navigateRange(pe.navigator.sexpRangeExpansion))
+  );
 
+  let utilForwardDownSexp = vscode.commands.registerCommand('repl-repl.utilForwardDownSexp',
+    wrapPareditCommand(navigate(pe.navigator.forwardDownSexp))
+  );
+  let utilBackwardSexp = vscode.commands.registerCommand('repl-repl.utilBackwardSexp',
+    wrapPareditCommand(navigate(pe.navigator.backwardSexp))
+  );
+  let utilForwardSexp = vscode.commands.registerCommand('repl-repl.utilForwardSexp',
+    wrapPareditCommand(navigate(pe.navigator.forwardSexp))
+  );
+  let utilRangeForDefun = vscode.commands.registerCommand('repl-repl.utilRangeForDefun',
+    wrapPareditCommand(navigate(pe.navigator.rangeForDefun))
+  );
   let evalOutermostForm = vscode.commands.registerCommand('repl-repl.eval-outermost-form',
     () => replrepl('eval-outermost-form')
   );
@@ -409,6 +477,11 @@ function activate(context) {
     () => replrepl('remove-log-wrap')
   );
   //let disposable = vscode.commands.registerCommand('extension.replrepl', replrepl);
+  context.subscriptions.push(utilSexpRangeExpansion);
+  context.subscriptions.push(utilForwardDownSexp);
+  context.subscriptions.push(utilBackwardSexp);
+  context.subscriptions.push(utilForwardSexp);
+  context.subscriptions.push(utilRangeForDefun);
   context.subscriptions.push(evalOutermostForm);
   context.subscriptions.push(evalCurrentForm);
   context.subscriptions.push(evalCurrentExpression);

@@ -33,6 +33,11 @@
         "theme": "dark"
     },
     "activationEvents": [
+        "onCommand:repl-repl.utilSexpRangeExpansion",
+        "onCommand:repl-repl.utilBackwardSexp",
+        "onCommand:repl-repl.utilForwardSexp",
+        "onCommand:repl-repl.utilForwardDownSexp",
+        "onCommand:repl-repl.utilRangeForDefun",
         "onCommand:repl-repl.eval-outermost-form",
         "onCommand:repl-repl.eval-current-form",
         "onCommand:repl-repl.eval-current-expression",
@@ -44,6 +49,26 @@
     "main": "./src/extension",
     "contributes": {
         "commands": [
+            {
+                "command": "repl-repl.utilSexpRangeExpansion",
+                "title": "repl-repl: utilSexpRangeExpansion"
+            },
+            {
+                "command": "repl-repl.utilBackwardSexp",
+                "title": "repl-repl: utilBackwardSexp"
+            },
+            {
+                "command": "repl-repl.utilForwardSexp",
+                "title": "repl-repl: utilForwardSexp"
+            },
+            {
+                "command": "repl-repl.utilForwardDownSexp",
+                "title": "repl-repl: utilForwardDownSexp"
+            },
+            {
+                "command": "repl-repl.utilRangeForDefun",
+                "title": "repl-repl: utilRangeForDefun"
+            },
             {
                 "command": "repl-repl.eval-outermost-form",
                 "title": "repl-repl: Evaluate Outermost Form"
@@ -124,6 +149,9 @@
     "scripts": {
         "postinstall": "node ./node_modules/vscode/bin/install",
         "test": "node ./node_modules/vscode/bin/test"
+    },
+    "dependencies": {
+        "paredit.js": "^0.2.13"
     },
     "devDependencies": {
         "typescript": "^2.6.1",
