@@ -191,6 +191,7 @@ function textRangeCharsAndForms(text, textRange){
   let isSet = isMap && firstChar === "{" && precedingChar === "#";
   let isAnonFn = isSexp && precedingChar === "#";
   let isList = isSexp && precedingChar === "'";
+  let isReified = !isString && !isForm && precedingChar === "@";
   return {
     textRangeStartIdx,
     textRangeEndIdx,
@@ -206,7 +207,8 @@ function textRangeCharsAndForms(text, textRange){
     isString,
     isForm,
     isAnonFn,
-    isList
+    isList,
+    isReified
   }
 }
 
@@ -231,6 +233,10 @@ function consoleLogWrappedText(o){
   return vscode.window.activeTextEditor.document.getText(newLwTextRange);
 }
 
+
+
+
+
 function profile(userArg){
   let editor = vscode.window.activeTextEditor;
   let o = {
@@ -243,10 +249,35 @@ function profile(userArg){
     isJSComment: false,
     ogPoint: cursorPos()
   };
-  lo("profile o", o)
-  if(["log-wrap-outermost-form",
-      "eval-outermost-form",
-      "remove-log-wrap"].includes(userArg)) {
+
+  if(userArg === "remove-log-wrap"){
+    vscode.commands.executeCommand("repl-repl.utilRangeForDefun");
+    let outerFormText = selectedText();
+    if (/^\(js\/console.log "\\n"/.test(outerFormText)){
+      //do nothing.
+    }else if (/\(js\/console.log "\\n"/.test(selectedText())){
+      vsSendCursorToPos(o.ogPoint);
+      if(isInsideForm()) {
+        vsSendCursorToPos(o.ogPoint);
+        let isLogWrap = false;
+        let isOuterFormTextMatch = false;
+        while (!isLogWrap && !isOuterFormTextMatch) {
+          vscode.commands.executeCommand("repl-repl.utilSexpRangeExpansion");
+          let currentText = selectedText();
+          isLogWrap = (/^\(js\/console.log "\\n"/.test(currentText));
+          if (isLogWrap) {
+          }
+          isOuterFormTextMatch = (currentText === outerFormText)
+          if(isOuterFormTextMatch){
+            vsSendCursorToPos(o.ogPoint);
+            o.cursorNotInLogWrap = true;
+            return o;
+          }
+        }
+      }
+    }
+  }else if(["log-wrap-outermost-form",
+            "eval-outermost-form"].includes(userArg)) {
     vscode.commands.executeCommand("repl-repl.utilRangeForDefun");
   }else if(["log-wrap-current-form",
             "eval-current-form"].includes(userArg)) {
@@ -288,8 +319,8 @@ function profile(userArg){
     o.textRange = null
   }
 
-  lo("textrange", o.textRange)
-  lo("text", o.text)
+  //lo("textrange", o.textRange)
+  //lo("text", o.text)
 
   if(["'", "#"].includes(o.text)){
     vsSendCursorToPos(o.ogPoint);
@@ -328,7 +359,7 @@ function profile(userArg){
       }
       o.jsComment = jsComment(o);
     }
-    o.textRange = (o.isSet || o.isList || o.isAnonFn) ?
+    o.textRange = (o.isSet || o.isList || o.isAnonFn || o.isReified) ?
       new vscode.Range(posForIdx(idxForPos(o.textRange.start) - 1), o.textRange.end)
       :
       o.textRange;
@@ -351,22 +382,25 @@ function profileEvalFn(userArg){
       vscode.window.showWarningMessage("repl-repl: Commented line")
       return;
     }
-
+    //lo("profile", p);
     let p = profile(userArg);
-    ///lo("profile", p);
+    //lo("profile", p);
+    if (p.cursorNotInLogWrap){
+      vscode.window.showWarningMessage("repl-repl: The cursor must be inside a form that has been log-wrapped by repl-repl.");
+      return;
+    }
 
-    if(p.textRange) {
-      if(p.isConsoleLogWrap){
-        if(userArg === "remove-log-wrap"){
+
+    if(p.textRange){
+      if(p.isConsoleLogWrap && (userArg !== "remove-log-wrap")){
+        vscode.window.showWarningMessage("repl-repl: Currently inside log wrapped form.");
+      }else if(userArg === "remove-log-wrap"){
+        if(p.isConsoleLogWrap){
           const replaceLogWrap = logger.replaceLogWrapFn(p);
           replaceLogWrap();
           return;
-        }else{
-          vscode.window.showWarningMessage("repl-repl: Currently inside log wrapped form.");
-          return;
         }
-      }
-      else if(["log-wrap-outermost-form",
+      }else if(["log-wrap-outermost-form",
           "log-wrap-current-form",
           "log-wrap-current-expression"].includes(userArg)){
         const logWrap = logger.logWrap(p)
