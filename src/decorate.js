@@ -1,13 +1,13 @@
 const vscode = require('vscode');
 
 const colors = {
-  red : "rgba(255, 193, 193, 0.3)",
-  violet: "rgba(223, 193, 255, 0.3)",
-  blue : "rgba(193, 236, 255, 0.3)",
-  cyan : "rgba(193, 255, 244, 0.3)",
-  green : "rgba(193, 255, 195, 0.3)",
-  yellow : "rgba(249, 255, 0, 0.3)",
-  orange : "rgba(246, 194, 113, 0.3)"
+  red : "rgba(255, 193, 193, 0.35)",
+  violet: "rgba(223, 193, 255, 0.34)",
+  blue : "rgba(193, 236, 255, 0.35)",
+  cyan : "rgba(193, 255, 244, 0.5)",
+  green : "rgba(193, 255, 195, 0.5)",
+  yellow : "rgba(249, 255, 0, 0.5)",
+  orange : "rgba(246, 194, 113, 0.35)"
 };
 
 function convertHex(hex) {
@@ -68,25 +68,25 @@ function evalFormHighlightAnimation(range){
   let interval = 50;
   setTimeout(
     () => {
-      highlight = changeHighlight(colors.cyan, highlight, range);
+      highlight = changeHighlight(colors.yellow, highlight, range);
       setTimeout(
         () => {
           highlight = changeHighlight( colors.green, highlight, range);
           setTimeout(
             () => {
-              highlight = changeHighlight( colors.yellow, highlight, range);
+              highlight = changeHighlight( colors.cyan, highlight, range);
               setTimeout(
                 () => {
-                  highlight = changeHighlight(colors.orange, highlight, range);
+                  highlight = changeHighlight(colors.blue, highlight, range);
                   setTimeout(
                     () => {
-                      highlight = changeHighlight(colors.red, highlight, range);
+                      highlight = changeHighlight(colors.violet, highlight, range);
                       setTimeout(
                         () => {
-                          highlight = changeHighlight(colors.violet, highlight, range);
+                          highlight = changeHighlight(colors.red, highlight, range);
                           setTimeout(
                             () => {
-                              highlight = changeHighlight(colors.blue, highlight, range);
+                              highlight = changeHighlight(colors.orange, highlight, range);
                               setTimeout(
                                 () => {
                                   clearEvalFormHighlight(highlight);
@@ -105,7 +105,7 @@ function evalFormHighlightAnimation(range){
         },
         interval);
     },
-    interval);
+    0);
 }
 
 function highlightEvalForm(rangeToHighlight) {

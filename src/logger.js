@@ -1,5 +1,13 @@
 const vscode = require('vscode');
 
+function lo (s, o){
+  console.log("\n\n"+s, JSON.stringify( o, null, 2 ))
+}
+
+function lv (s, v){
+  console.log("\n\n"+s, v)
+}
+
 // reserve various defs
 function getCopiedEscapeDefs(copied) {
   let cljMacros = new Set(['defn', 'def', 'and', 'if', 'let']);
@@ -19,134 +27,152 @@ function getCopiedEscapeDefs(copied) {
   }
 }
 
-function logWrap(p) {
-  // escape defs
-  let thingToEval = p.isJsComment ?
-    '(js/eval "' + p.jsComment + '")' :
-    getCopiedEscapeDefs(p.textToEval);
 
-  // joiner changed to sp
-  let applyLog = `(js/console.log "\\n" (quote ${thingToEval}) "\\n\\n =>" ${thingToEval} "\\n\\n")`;
-  let isCljc = p.fileExt === "cljc";
+function doc (s, id) {
+  let block = `
+(let [{ns :ns fn-name :name arglists :arglists doc :doc} (meta #'${s})
+ args (interpose "\\n" (map #(str "(" (.join (clj->js (cons (name fn-name) %)) " ") ")") arglists))
+ fully-qualified (symbol (str (name ns) "/" (name fn-name)))]
+
+ (apply
+ js/console.log
+ (concat
+ ["\\n"
+ ${s}
+ "\\n"
+ "\\n"
+ fully-qualified
+ "\\n"
+ "\\n"]
+
+  args
+
+  ["\\n"
+  "\\n"
+  doc
+  "\\n"
+  "\\n"
+  (str "https://cljs.github.io/api/" fully-qualified)
+  "\\n"
+  "\\n"
+  (str "https://clojure.docs.org/" fully-qualified)
+  "\\n\\n"]))) #_"${id}"`
+
+  return block.replace(/\n/gm, '');
+}
+
+
+
+function printWrapSimple(o) {
+  let applyLog = `(js/console.log ${o.textToEval})`;
+  let isCljc = o.fileExt === "cljc";
   let cljcApplyLog = isCljc ? '#?(:cljs ' + applyLog + ')' : applyLog;
-  let ret = `(do ${cljcApplyLog} ${thingToEval})`;
+  return cljcApplyLog;
+}
 
-  //return ret;
+function printWrap(o) {
+  // escape defs
+  let thingToEval = o.isJsComment ?
+    '(js/eval "' + o.jsComment + '")' :
+    getCopiedEscapeDefs(o.textToEval);
+
+  let applyLog = `(js/console.log "\\n" (quote ${thingToEval}) "\\n\\n =>" ${thingToEval} "\\n\\n")`;
+  let isCljc = o.fileExt === "cljc";
+  let cljcApplyLog = isCljc ? '#?(:cljs ' + applyLog + ')' : applyLog;
   return cljcApplyLog;
 }
 
 
-function logBlock(o) {
-  let copied = o.textToEval;
-  let surfStart = '#___rr-start';
-  let surfEnd = '#___rr-end';
-
-  // quotes and newlines for cljs
-  let sp = ' ';
-  let nl = '\n';
-  let qnl = '"\\n"';
-  let qnlSp = '"\\n "';
-  let qdq = '"\\""';
-  let nlTwoSp = nl + sp + sp;
-
+function printBlock(o, id) {
   // stringify fn
-  let strfnName = 'rr';
-  let strfn = '(let [' + strfnName + ' (fn [v] (if (string? v) (str ' + qdq + ' v ' + qdq + ') v))]';
-
-  // escape defs
-  let thingToEval = o.jsComment ?
-    '(js/eval "' + o.jsComment + '")' :
-    getCopiedEscapeDefs(copied);
+  let strfnName = 'f';
 
   // cljs to pass quoted form to stringify fn
   let thingToEvalDisplay = o.jsComment ?
-    '"' + o.jsComment + '"' :
-    '(' + strfnName + ' (quote ' + copied + '))';
+    `"${o.jsComment}"` : `(${strfnName}  (quote ${o.textToEval}))`;
 
-  // cljs to pass evaled form(result) to stringify fn
-  let evalResultLine = '"=>"' + nlTwoSp + '(' + strfnName + ' ' + thingToEval + ')';
+  // escape defs
+  let thingToEval = o.jsComment ?
+    `(js/eval "${o.jsComment}")` : getCopiedEscapeDefs(o.textToEval);
 
-  let joiner = nlTwoSp;
-  let doubleLineBreak = qnl + qnl;
-  let logArgs = [qnl, thingToEvalDisplay, doubleLineBreak, evalResultLine, qnlSp].join(joiner);
-  let applyLog = '(apply js/console.log' + nl + ' [' + logArgs + '])';
-  let isCljc = o.fileExt === "cljc";
-  let cljcApplyLog = isCljc ? '#?(:cljs ' + applyLog + ')' : applyLog;
-  let consoleClear = '(js/console.clear)';
-  let ecp = '(enable-console-print!)';
-  let newSurf = [nl, surfStart, consoleClear, ecp, strfn, cljcApplyLog+')', surfEnd].join("\n");
+  let applyLog =`
+(apply
+ js/console.log
+["\\n"
+ ${thingToEvalDisplay}
+ "\\n"
+ "\\n"
+ "=>"
+ (${strfnName} ${thingToEval})
+ "\\n "])`;
 
-  return newSurf;
+  let cljcApplyLog = (o.fileExt === "cljc") ? '#?(:cljs ' + applyLog + ')' : applyLog;
+
+  let newSurf = `
+(let [${strfnName} #(if (string? %)
+ (str "\\"" % "\\"") %)]
+ (js/console.clear)
+ ${cljcApplyLog}
+ ${o.textToEval}) #_"${id}"`;
+
+  return newSurf.replace(/\n/gm, '');
 }
 
 
 function injectNewFn (range, newText) {
   return () => {
     return vscode.window.activeTextEditor.edit(edit => {
-      //let evalRange = p.textRange
       edit.replace(range, newText);
-      //edit.replace(new vscode.Range(evalRange.start, evalRange.end), new);
     });
   };
 }
 
-function getTextInPointRange(state, range) {
-  let newRange = new vscode.Range(range.start, range.end);
-  let textInRange = state.buff.getText(newRange);
-  return textInRange
-}
-
-function replaceLogWrapFn (p) {
+function replacePrintWrapFn (p) {
   return () => {
     return vscode.window.activeTextEditor.edit(edit => {
-      edit.replace(p.textRange, p.consoleLogWrappedText);
+      edit.replace(p.textRange, p.consolePrintWrappedText);
     });
   };
 }
 
-function ghostLogFn(p) {
-  return () => {
-    let doc = vscode.window.activeTextEditor.document;
-    let newBuffText = doc.getText();
-    let newEndPos = doc.positionAt(newBuffText.length);
-    p.logBlockRange = new vscode.Range(p.endPos, newEndPos);
-    p.logBlockDecorator = vscode.window.createTextEditorDecorationType({
-      light: {
-        color: "rgba(80, 145, 222, 1)"
-      },
-      dark: {
-        color: "rgba(100, 175, 255, 1)"
-      }
-    });
-    vscode.window.activeTextEditor.setDecorations(p.logBlockDecorator, [{
-      range: p.logBlockRange
-    }]);
-  }
+function deletePrintBlockFn (p) {
+  return (
+    function deletePrintBlock(promise) {
+      const deleteRange = getDeleteRange(p);
+      setTimeout(deleteText, 500, deleteRange, p);
+    }
+  )
 }
 
+function revertPrintBlockFn (p, id) {
+  return () => {
+    return vscode.window.activeTextEditor.edit(edit => {
+      const documentText = vscode.window.activeTextEditor.document.getText();
+      let re = new RegExp(`_"${id}"`, 'gm');
+      var match;
+      var matchRanges = [];
+      while (match = re.exec(documentText)) {
+         matchRanges.push([match.index, re.lastIndex])
+      }
+      const endPos = vscode.window.activeTextEditor.document.positionAt(matchRanges[0][1]);
+      edit.replace(new vscode.Range(p.textRange.start, endPos), p.textToEval);
+    });
+  };
+}
 
 function insertTextFn(p, newSurf) {
   return () => {
     return vscode.window.activeTextEditor.edit(edit => {
-      edit.replace(p.logBlockRange, newSurf);
+      edit.replace(p.printBlockRange, newSurf);
     });
   };
 }
-
-function insertBlankTextFn(p, newSurf) {
-  return () => {
-    return vscode.window.activeTextEditor.edit(edit => {
-      edit.insert(p.endPos, newSurf.replace(/./gm, ' '));
-    });
-  };
-}
-
 
 function deleteText(range, p) {
   vscode.window.activeTextEditor.edit(
     edit => {
       edit.delete(range);
-      vscode.window.activeTextEditor.setDecorations(p.logBlockDecorator, []);
+      vscode.window.activeTextEditor.setDecorations(p.printBlockDecorator, []);
     }
   );
 }
@@ -154,61 +180,30 @@ function deleteText(range, p) {
 function getDeleteRange(p) {
   const userInsertsFinalNewline = vscode.workspace.getConfiguration().get('files.insertFinalNewline')
   if (userInsertsFinalNewline) {
-    const start = p.logBlockRange.start;
-    const end = p.logBlockRange.end;
+    const start = p.printBlockRange.start;
+    const end = p.printBlockRange.end;
     const newRange = new vscode.Range(start.line, start.character, end.line + 2, 0);
     return newRange;
   } else {
-    return p.logBlockRange;
+    return p.printBlockRange;
   }
 }
 
-function lo (s, o){
-  console.log("\n\n"+s, JSON.stringify( o, null, 2 ))
-}
-
-function deleteLogBlockFn(p) {
+function deletePrintBlockFn(p) {
   return (
-    function deleteLogBlock(promise) {
+    function deletePrintBlock(promise) {
       const deleteRange = getDeleteRange(p);
-      //lo("deleteLogBlockRange!", p.logBlockRange);
       setTimeout(deleteText, 500, deleteRange, p);
     }
   )
 }
 
-function deleteCruftFn(logBlocks) {
-  let editor = vscode.window.activeTextEditor;
-  return () => {
-    return editor.edit(edit => {
-      logBlocks.reverse().forEach( range => {
-        let r = new vscode.Range(editor.document.positionAt(range[0]), editor.document.positionAt(range[1]));
-        //lo("range!", r);
-        edit.replace(r, "");
-      });
-    });
-  };
-}
-
-function rrLogBlocks () {
-  // Nuke any cruf rr logblocks
-  const documentText = vscode.window.activeTextEditor.document.getText();
-  let matchRanges = [];
-  let re = /(\#___rr-start[\s\S]*?\#___rr-end)/gm;
-  var match;
-  while (match = re.exec(documentText)) {
-     matchRanges.push([match.index, re.lastIndex])
-  }
-  return matchRanges;
-}
-
-exports.rrLogBlocks = rrLogBlocks;
-exports.logBlock = logBlock;
-exports.logWrap = logWrap;
+exports.printBlock = printBlock;
+exports.printWrap = printWrap;
+exports.printWrapSimple = printWrapSimple;
+exports.doc = doc;
 exports.insertTextFn = insertTextFn;
-exports.insertBlankTextFn = insertBlankTextFn;
-exports.ghostLogFn = ghostLogFn;
-exports.deleteLogBlockFn = deleteLogBlockFn;
-exports.deleteCruftFn = deleteCruftFn;
+exports.deletePrintBlockFn = deletePrintBlockFn;
 exports.injectNewFn = injectNewFn;
-exports.replaceLogWrapFn = replaceLogWrapFn;
+exports.revertPrintBlockFn = revertPrintBlockFn;
+exports.replacePrintWrapFn = replacePrintWrapFn;

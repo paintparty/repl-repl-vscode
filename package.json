@@ -35,82 +35,57 @@
     "activationEvents": [
         "onCommand:repl-repl.eval-outermost-form",
         "onCommand:repl-repl.eval-current-form",
-        "onCommand:repl-repl.eval-current-expression",
-        "onCommand:repl-repl.log-wrap-outer-form",
-        "onCommand:repl-repl.log-wrap-current-form",
-        "onCommand:repl-repl.log-wrap-current-expression",
-        "onCommand:repl-repl.remove-log-wrap",
-        "onCommand:repl-repl.utilSexpRangeExpansion",
-        "onCommand:repl-repl.utilBackwardSexp",
-        "onCommand:repl-repl.utilForwardSexp",
-        "onCommand:repl-repl.utilForwardDownSexp",
-        "onCommand:repl-repl.utilRangeForDefun"
+        "onCommand:repl-repl.eval-on-point",
+        "onCommand:repl-repl.print-wrap-symbol-with-annotation",
+        "onCommand:repl-repl.print-wrap-on-point",
+        "onCommand:repl-repl.remove-print-wrap",
+        "onCommand:repl-repl.doc"
     ],
     "main": "./src/extension",
     "contributes": {
         "commands": [
             {
-                "command": "repl-repl.eval-outermost-form",
-                "title": "repl-repl: Evaluate Outermost Form"
+                "command": "repl-repl.eval-on-point",
+                "title": "repl-repl: Evaluate On Point"
             },
             {
                 "command": "repl-repl.eval-current-form",
                 "title": "repl-repl: Evaluate Current Form"
             },
             {
-                "command": "repl-repl.eval-current-expression",
-                "title": "repl-repl: Evaluate Current Expression"
+                "command": "repl-repl.eval-outermost-form",
+                "title": "repl-repl: Evaluate Outermost Form"
             },
             {
-                "command": "repl-repl.log-wrap-outer-form",
-                "title": "repl-repl: Log Wrap Outer Form"
+                "command": "repl-repl.print-wrap-symbol-with-annotation",
+                "title": "repl-repl: Print Wrap Symbol With Annotation"
             },
             {
-                "command": "repl-repl.log-wrap-current-form",
-                "title": "repl-repl: Log Wrap Current Form"
+                "command": "repl-repl.print-wrap-on-point",
+                "title": "repl-repl: Print Wrap On Point"
             },
             {
-                "command": "repl-repl.log-wrap-current-expression",
-                "title": "repl-repl: Log Wrap Current Expression"
+                "command": "repl-repl.remove-print-wrap",
+                "title": "repl-repl: Remove Print Wrap"
             },
             {
-                "command": "repl-repl.remove-log-wrap",
-                "title": "repl-repl: Remove Log Wrap"
-            },
-            {
-                "command": "repl-repl.utilSexpRangeExpansion",
-                "title": "repl-repl: utilSexpRangeExpansion"
-            },
-            {
-                "command": "repl-repl.utilBackwardSexp",
-                "title": "repl-repl: utilBackwardSexp"
-            },
-            {
-                "command": "repl-repl.utilForwardSexp",
-                "title": "repl-repl: utilForwardSexp"
-            },
-            {
-                "command": "repl-repl.utilForwardDownSexp",
-                "title": "repl-repl: utilForwardDownSexp"
-            },
-            {
-                "command": "repl-repl.utilRangeForDefun",
-                "title": "repl-repl: utilRangeForDefun"
+                "command": "repl-repl.doc",
+                "title": "repl-repl: View Function Documentation"
             }
         ],
         "keybindings": [
             {
-                "command": "repl-repl.eval-outermost-form",
+                "command": "repl-repl.eval-on-point",
                 "key": "cmd+enter",
                 "when": "isMac && editorTextFocus"
             },
             {
-                "command": "repl-repl.eval-outermost-form",
+                "command": "repl-repl.eval-on-point",
                 "key": "alt+enter",
                 "when": "isWindows && editorTextFocus"
             },
             {
-                "command": "repl-repl.eval-outermost-form",
+                "command": "repl-repl.eval-on-point",
                 "key": "alt+enter",
                 "when": "isLinux && editorTextFocus"
             },
@@ -130,17 +105,17 @@
                 "when": "isLinux && editorTextFocus"
             },
             {
-                "command": "repl-repl.eval-current-expression",
+                "command": "repl-repl.eval-outermost-form",
                 "key": "ctrl+alt+cmd+enter",
                 "when": "isMac && editorTextFocus"
             },
             {
-                "command": "repl-repl.eval-current-expression",
+                "command": "repl-repl.eval-outermost-form",
                 "key": "shift+ctrl+alt+enter",
                 "when": "isWindows && editorTextFocus"
             },
             {
-                "command": "repl-repl.eval-current-expression",
+                "command": "repl-repl.eval-outermost-form",
                 "key": "shift+ctrl+alt+enter",
                 "when": "isLinux editorTextFocus"
             }

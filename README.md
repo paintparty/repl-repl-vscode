@@ -10,36 +10,33 @@ Instant feedback with syntax highlighting is delivered straight to your Chrome D
 
 
 ## Usage ##
-This extension is designed to be used in tandem with [Figwheel](https://figwheel.org/).
+This extension is designed to be used in tandem with hot-reloading ClojureScript build frameworks such as [figwheel](https://figwheel.org/), [shadow-cljs](http://shadow-cljs.org/), and [boot](https://github.com/adzerk-oss/boot-reload).
 
 IMPORTANT: Make sure you have [enabled custom formatters in Chrome DevTools](http://www.mattzeunert.com/2016/02/19/custom-chrome-devtools-object-formatters.html). This is necessary because formatting and syntax highlighting of the evaluated code in Chrome DevTools Console relies on [cljs-devtools](https://github.com/binaryage/cljs-devtools), which is bundled with Figwheel by default.
 
-This extension will also work with [shadow-cljs](http://shadow-cljs.org/) or [boot](https://github.com/adzerk-oss/boot-reload), although you will need to include [cljs-devtools](https://github.com/binaryage/cljs-devtools) as a dependency in your project, and make sure that you've enabled cljs-devtools in your project. Again, you will need to [enable custom formatters in Chrome DevTools](http://www.mattzeunert.com/2016/02/19/custom-chrome-devtools-object-formatters.html).
+if you are using [shadow-cljs](http://shadow-cljs.org/) or [boot](https://github.com/adzerk-oss/boot-reload), include [cljs-devtools](https://github.com/binaryage/cljs-devtools) as a dependency in your project, and make sure that you've enabled cljs-devtools in your project. Again, you will need to [enable custom formatters in Chrome DevTools](http://www.mattzeunert.com/2016/02/19/custom-chrome-devtools-object-formatters.html).
 
 &nbsp;
 
 Based on where the cursor is, you can do one of the following:
 
-***Evaluate Outermost Form***<br>
+***Evaluate On Point***<br>
 Default keybinding: `cmd-enter` (mac), `alt-enter` (windows & linux)
 
 ***Evaluate Current Form***<br>
 Default keybinding: `cmd-alt-enter` (mac), `alt-ctrl-enter` (windows & linux)
 
-***Evaluate Current Expression***<br>
+***Evaluate Outermost Form***<br>
 Default keybinding: `ctrl-cmd-alt-enter` (mac), `shift-ctrl-alt-enter` (windows & linux)
 
-***Log Wrap Outer Form***<br>
+***Print Wrap Symbol With Annotation***<br>
 This command will wrap the outermost form in an annotated `js/console.log` form.
 
-***Log Wrap Current Form***<br>
+***Print Wrap On Point***<br>
 This command will wrap the current form in an annotated `js/console.log` form.
 
-***Log Wrap Current Expression***<br>
-This command will wrap the current expression in an annotated `js/console.log` form.
-
-***Remove Log Wrap***<br>
-This command will remove the `js/console.log` form around an expression or form that was previously wrapped by one of the log wrapping commands listed above.
+***Remove Print Wrap***<br>
+This command will remove the `js/console.log` form around an expression or form.
 
 Feel free customize these keybindings to suit your needs.
 &nbsp;
@@ -48,5 +45,6 @@ You can also access the commands above by opening the command pallette ( `cmd-sh
 
 &nbsp;
 
-Copyright © 2018 JC
+Copyright © 2018-2020 JC
+
 Example animation features the [FiraCode](https://github.com/tonsky/FiraCode) font by [tonsky](https://github.com/tonsky)
