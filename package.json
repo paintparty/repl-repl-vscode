@@ -39,6 +39,8 @@
         "onCommand:repl-repl.print-wrap-symbol-with-annotation",
         "onCommand:repl-repl.print-wrap-on-point",
         "onCommand:repl-repl.remove-print-wrap",
+        "onCommand:repl-repl.comment",
+        "onCommand:repl-repl.uncomment",
         "onCommand:repl-repl.doc"
     ],
     "main": "./src/extension",
@@ -67,6 +69,14 @@
             {
                 "command": "repl-repl.remove-print-wrap",
                 "title": "repl-repl: Remove Print Wrap"
+            },
+            {
+                "command": "repl-repl.comment",
+                "title": "repl-repl: Comment"
+            },
+            {
+                "command": "repl-repl.uncomment",
+                "title": "repl-repl: Uncomment"
             },
             {
                 "command": "repl-repl.doc",
