@@ -260,6 +260,16 @@ function newRange (range, startOffset, endOffset){
 }
 
 function textRangeCharsAndForms(_text, textRange, type){
+  // lv("type", type)
+  // lv("textRange", textRange)
+  // lv("text", _text)
+  let endPosition = endPos();
+  let fileExtension = fileExt();
+  // let isStringOutsideForm = false;
+  // let isKeywordOutsideForm = false;
+  // let isSymbolOutsideForm = false;
+  // let isNumberOutsideForm = false;
+  let isJSComment = false;
   let editor = vscode.window.activeTextEditor;
   let textRangeStartIdx = editor.document.offsetAt(textRange.start);
   let textRangeEndIdx = editor.document.offsetAt(textRange.end);
@@ -270,10 +280,14 @@ function textRangeCharsAndForms(_text, textRange, type){
   let p3Chars = preceding3Char + p2Chars;
   // Todo, case near EOF
   let followingChar = charAtIdx(textRangeEndIdx);
+  let following2Char = charAtIdx(textRangeEndIdx+1);
   let firstChar = _text.charAt(0);
   let lastChar = _text.charAt(_text.length-1);
   let isString = ( firstChar === '"' && lastChar === '"' );
   let isStringContents = ( precedingChar === '"' && followingChar === '"' );
+  let isStringContentsRegex = isStringContents && (preceding2Char === "#");
+  let isStringRegex = isString && (precedingChar === "#");
+  let isRegex = isStringRegex || isStringContentsRegex;
   let isCommentedSpecialForm = ["#_#", "#_'", "#_@", "#_%", "#_\n", "#_\""].includes(p3Chars);
   let isCommentedSymbol = ( firstChar === '_' && precedingChar === '#' );
   let isCommentedForm = ( p2Chars === "#_" );
@@ -295,25 +309,34 @@ function textRangeCharsAndForms(_text, textRange, type){
   let commentedText = undefined;
 
   if(isCommented){
-    if (isStringContents) {
+    if (isCommentedSpecialForm && isStringContentsRegex) {
+      commentedRange = newRange(range, -4, 0);
+    }else if (isCommentedSpecialForm) {
+      commentedRange = newRange(range, -3, 0);
+    }else if (isStringContents) {
       commentedRange = newRange(range, -3, 1);
     }else if (isString || isCommentedForm) {
       commentedRange = newRange(range, -2, 0);
     }else if (isCommentedSymbol) {
       commentedRange = newRange(range, -1, 0);
-    }else if (isCommentedSpecialForm) {
-      commentedRange = newRange(range, -3, 0);
     }
     commentedText = vscode.window.activeTextEditor.document.getText(commentedRange);
   }
 
-  if(isStringContents){
-    range = newRange(range, -1, 1);
-  }else if(isCommentedSymbol || isSpecialForm){
+  if (isStringContentsRegex) {
+    range = newRange(range, -2, 1);
+  }else if (isSpecialForm || isStringRegex) {
     range = newRange(range, -1, 0);
+  }else if (isCommentedSymbol) {
+    range = newRange(range, 1, 0);
+  }else if (isStringContents) {
+    range = newRange(range, -1, 1);
   }
 
+  // lv("og text", text)
+  // lv("type", type)
   text = vscode.window.activeTextEditor.document.getText(range);
+  // lv("text with new range", text)
 
   return {
     type,
@@ -327,6 +350,7 @@ function textRangeCharsAndForms(_text, textRange, type){
     preceding2Char,
     preceding3Char,
     followingChar,
+    following2Char,
     firstChar,
     lastChar,
     isMap,
@@ -335,6 +359,9 @@ function textRangeCharsAndForms(_text, textRange, type){
     isVector,
     isString,
     isStringContents,
+    isStringRegex,
+    isStringContentsRegex,
+    isRegex,
     isCommentedSpecialForm,
     isCommentedSymbol,
     isCommentedForm,
@@ -357,11 +384,11 @@ function textRangeDetails(type){
 }
 
 
-function getFormLevels(o){
+function getFormLevels(point){
+  let o = {};
   rangeForDefun();
   o.topLevel = textRangeDetails("topLevel");
-  vsSendCursorToPos(o.ogPoint);
-
+  vsSendCursorToPos(point);
   backwardUpSexp();
   sexpRangeExpansion();
   o.currentForm = {
@@ -369,11 +396,12 @@ function getFormLevels(o){
     text: selectedText()
   }
   o.currentForm = textRangeDetails("currentForm");
-  vsSendCursorToPos(o.ogPoint);
-
+  vsSendCursorToPos(point);
   sexpRangeExpansion();
   o.currentExpression = textRangeDetails("currentExpression");
-  vsSendCursorToPos(o.ogPoint);
+  vsSendCursorToPos(point);
+  
+  return o;
 }
 
 
@@ -564,129 +592,262 @@ function addRangeForPrintWrap(o){
   }
 }
 
-function profile(userArg){
-  let editor = vscode.window.activeTextEditor;
-  let o = {
-    endPos: endPos(),
-    fileExt: fileExt(),
-    isStringOutsideForm: false,
-    isKeywordOutsideForm: false,
-    isSymbolOutsideForm: false,
-    isNumberOutsideForm: false,
-    isJSComment: false,
-    ogPoint: cursorPos()
-  };
-  getFormLevels(o);
+// When point is on a special char "#", on commented set, regex, or anon fn.
+// keys are a result of running:
+// [o.currentExpression.text, o.currentForm.text, o.topLevel.text].join("")
+const _cft = {
+  "#,#,#":       {types: ["reified", "anon-fn", "string", "set", "list", "regex", "number"],
+                  examples: ["#_@aaa", "#_#(inc %)", "#_\"hello\"", "#_#{1 2 3}", "#_'(1 2 3)", "#\"\d", "12"],
+                  pointAtPos: 0},
 
-  console.log(o);
+  "#,#,#_":      {types: ["anon-fn", "set", "regex"],
+                  examples: ["#_#(inc %)", "#_#{1 2 3}", "#_#\"\d"],
+                  pointAtPos: 2},
 
-  if(userArg === "uncomment"){
-    let target = [o.currentExpression, o.topLevel, o.currentForm].find(o => o.isCommented);
-    if(target){
-      const injectNew = logger.injectNewFn(target.commentedRange, target.text);
-        injectNew();
-    }else{
-        vscode.window.showWarningMessage("repl-repl: Point is currently not on a commented form. A commented form must be an expression prepended with \"#_\"");
-    }
+  "#_,#_,#":     {types: ["anon-fn", "set", "regex"],
+                  examples: ["#_#(inc %)", "#_#{1 2 3}", "#_#\"\d"],
+                  pointAtPos: 1},
+
+  "@,@,#_":      {types: ["reified"],
+                  examples: ["#_@aaa"],
+                  pointAtPos: 2},
+
+  "#_',#_',#":   {types: ["reified", "anon-fn", "string", "set", "regex", "number"],
+                  examples: ["#_@aaa", "#_#(inc %)", "#_\"hello\"", "#_#{1 2 3}", "#\"\d", "12"],
+                  pointAtPos: 1},
+
+  "#_',#_',#_'": {types: ["list"],
+                  examples: ["#_'(1 2 3)"],
+                  pointAtPos: 2}
+}
+
+
+function getOg(o){
+  let ogPoint = cursorPos();
+  return {
+    ogPoint: ogPoint,
+    ogPointText: charAtIdx(idxForPos(ogPoint))
   }
-  return;
-  // if (userArg === "remove-print-wrap") {
-  //   selectPrintWrap(o);
-  //   addRangeForPrintWrap(o)
-  //   vsSendCursorToPos(o.ogPoint);
-  //   return o;
-  // }else{
-  //   selectTextFns[userArg](o);
-  // }
+}
 
-  modifySelectionForSpecialForms(o);
-  setTextAndRange(o);
-  modifyForListsSetsOrAnonFns(o);
 
-  if(o.text){
-    let details = textRangeCharsAndForms(o.text, o.textRange)
+function adjustForCommenting(o){
+  let {ogPoint, ogPointText} = getOg();
+  let ogPointAdjusted = undefined;
+  let offset = undefined;
+  // lo("first texts", [o.currentExpression.text, o.currentForm.text, o.topLevel.text].join(","));
+  let cftKey = [o.currentExpression.text, o.currentForm.text, o.topLevel.text].join(",");
+  // lv("cftKey", cftKey)
+  let cft = _cft[ cftKey ];
+  let follow = o.currentExpression.followingChar;
+  let follow2 = o.currentExpression.following2Char;
+  //  lo("cft", cft)
+  //  lv("following2Char", follow2);
+  //  lv("followingChar", follow);
+  //  lv("includes?", ["#", "'", "@"].includes(follow2))
 
-    //MUTATING o to add textRange and form details
-    Object.assign(o, details);
-    let p2Chars = o.preceding2Char + o.precedingChar;
-    o.isCommentedForm = ( p2Chars === "#_" ) || ( o.preceding3Char + p2Chars === "#_\n" );
-
-    if(!o.isForm){
-      o.isStringOutsideForm = o.firstChar==='"' && o.lastChar==='"';
-      o.isKeywordOutsideForm = o.firstChar===':';
-      o.isSymbolOutsideForm = o.firstChar==="'";
-      const isNumRe = /^[0-9|.]*$/gm;
-      o.isNumberOutsideForm = isNumRe.test(o.text);
+  if(cft){
+    if(cftKey === "#,#,#" && ["#", "'", "@"].includes(follow2)){
+      console.log("special form, point on pound, offset=3")
+      offset = 3
+    }else if (cftKey === "#_,#_,#"){
+      if(["#", "'", "@"].includes(follow)){
+        console.log("special form, point on underscore, offset=2")
+        offset = 2
+      }else{
+        console.log("point on underscore, offset=1")
+        offset = 1
+      }
+    }else if (cftKey === "#,#,#_" || cft === "@,@,#_"){
+      console.log("point on atsign or special pound, offset = 1")
+      offset = 1;
+    }else if (cftKey === "#_',#_',#_'"){
+      console.log("point on ', list, offset=1")
+      offset = 1;
+    }else if (cftKey === "#_',#_',#"){
+      console.log("point on underscore, list, offset=2")
+      offset = 2;
     }else{
-      o.isSet = o.isMap && o.firstChar === "{" && o.precedingChar === "#";
-      o.isAnonFn = o.isSexp && o.precedingChar === "#";
-      o.isList = o.isSexp && o.precedingChar === "'";
-
-      o.jsComment = jsComment(o);
+      console.log("offset defaulting to 2")
+      offset = 2;
     }
-    // convert start pos to -1
-    o.textRange = (o.isSet || o.isList || o.isAnonFn || o.isReified) ?
-      new vscode.Range(posForIdx(idxForPos(o.textRange.start) - 1), o.textRange.end)
-      :
-      o.textRange;
-    o.textToEval = vscode.window.activeTextEditor.document.getText(o.textRange)
+
+    // lv("offset", offset)
+    ogPointAdjusted = posForIdx(idxForPos(ogPoint) + offset);
+    console.log("RERUNNING!!!!")
+    // lv("ogPoint text", ogPointText)
+    // lv("ogPoint text adjusted", charAtIdx(idxForPos(ogPointAdjusted)))
+    o = getFormLevels(ogPointAdjusted);
+    // lo("new texts", [o.currentExpression.text, o.currentForm.text, o.topLevel.text].join(","));
+  }else{
+    
   }
-  vsSendCursorToPos(o.ogPoint);
+  // lo("currentExpression", o.currentExpression)
   return o;
 }
 
+
+// function profile(userArg){
+
+//   modifySelectionForSpecialForms(o);
+//   setTextAndRange(o);
+//   modifyForListsSetsOrAnonFns(o);
+
+//   if(o.text){
+//     let details = textRangeCharsAndForms(o.text, o.textRange)
+
+//     //MUTATING o to add textRange and form details
+//     Object.assign(o, details);
+//     let p2Chars = o.preceding2Char + o.precedingChar;
+//     o.isCommentedForm = ( p2Chars === "#_" ) || ( o.preceding3Char + p2Chars === "#_\n" );
+
+//     if(!o.isForm){
+//       o.isStringOutsideForm = o.firstChar==='"' && o.lastChar==='"';
+//       o.isKeywordOutsideForm = o.firstChar===':';
+//       o.isSymbolOutsideForm = o.firstChar==="'";
+//       const isNumRe = /^[0-9|.]*$/gm;
+//       o.isNumberOutsideForm = isNumRe.test(o.text);
+//     }else{
+//       o.isSet = o.isMap && o.firstChar === "{" && o.precedingChar === "#";
+//       o.isAnonFn = o.isSexp && o.precedingChar === "#";
+//       o.isList = o.isSexp && o.precedingChar === "'";
+
+//       o.jsComment = jsComment(o);
+//     }
+//     // convert start pos to -1
+//     o.textRange = (o.isSet || o.isList || o.isAnonFn || o.isReified) ?
+//       new vscode.Range(posForIdx(idxForPos(o.textRange.start) - 1), o.textRange.end)
+//       :
+//       o.textRange;
+//     o.textToEval = vscode.window.activeTextEditor.document.getText(o.textRange)
+//   }
+//   vsSendCursorToPos(o.ogPoint);
+//   return o;
+// }
+
+
+function revertCursor(n, ogPoint){
+  vsSendCursorToPos(posForIdx(idxForPos(ogPoint) + n))
+}
 
 function profileEvalFn(userArg){
   return () => {
     let editor = vscode.window.activeTextEditor;
     let cursorPos =  editor.selection.active;
-
+    let currentLineText = editor.document.lineAt(cursorPos.line).text;
     // If point is on commented line(first char on line is semicolon), bail.
-    let leadingChar = editor.document.lineAt(cursorPos.line).text.trim().charAt(0);
+    let leadingChar = currentLineText.trim().charAt(0);
     let isCommentLine = leadingChar === ";"
+    let isBlankLine = (currentLineText === "" || !currentLineText);
     if (isCommentLine){
       vscode.window.showWarningMessage("repl-repl: Commented line")
       return;
+    }else if (isBlankLine){
+      vscode.window.showWarningMessage("repl-repl: Blank line")
+      return;
     }
-    let p = profile(userArg);
-    // possibly move this logic down into branching below?
-return;
-    if (userArg === "remove-print-wrap") {
-      removePrintWrap(p);
 
-    }else if(p.textRange) {
-      if(p.isConsolePrintWrap && (userArg !== "remove-print-wrap")){
-        vscode.window.showWarningMessage("repl-repl: Currently inside print wrapped form.");
+    let {ogPoint, ogPointText} = getOg();
+    let o = getFormLevels(ogPoint);
 
-      }else if (userArg ==="print-wrap-symbol-with-annotation"){
-        if (!p.isForm) {
-          const printWrap = logger.printWrap(p);
-          const injectNew = logger.injectNewFn(p.textRange, printWrap);
+    o = adjustForCommenting(o)
+    o.ogPoint = ogPoint;
+    o.ogPointText = ogPointText;
+
+    if(userArg === "uncomment"){
+      let target = [o.currentExpression, o.topLevel, o.currentForm].find(o => o.isCommented);
+      if(target){
+        const injectNew = logger.injectNewFn(target.commentedRange, target.text);
           injectNew();
-        }else{
-          vscode.window.showWarningMessage("repl-repl: Point is currently on a form. In order to create an annoted print-wrap, point must be on a symbol, number, string, or keyword.");
-        }
-
-      }else if (userArg ==="print-wrap-on-point"){
-        const printWrapSimple = logger.printWrapSimple(p);
-        const injectNew = logger.injectNewFn(p.textRange, printWrapSimple);
-        injectNew();
-
-      }else if (userArg === "doc"){
-        if(!p.isForm && !p.isString && !p.isAnonFn && !p.isReified && !p.isCommentedForm && !p.isConsolePrintWrap && !p.isJSComment){
-          let id = makeid(15);
-          const docBlock = logger.doc(p.textToEval, id);
-          injectAndRevert(p, docBlock, id);
-        }else{
-          vscode.window.showWarningMessage("repl-repl: In order to , the cursor must be on a function symbol");
-        }
       }else{
-        let id = makeid(15);
-        const printBlock = logger.printBlock(p, id);
-        injectAndRevert(p, printBlock, id);
+          vscode.window.showWarningMessage("repl-repl: Point is currently not on a commented form. A commented form must be an expression prepended with \"#_\"");
       }
     }
-  }
+
+    if(userArg === "comment"){
+      let target = o.currentExpression;
+      if (o.topLevel.isCommented || o.currentForm.isCommented || target.isCommented ) {
+          vscode.window.showWarningMessage("repl-repl: Point is currently on, or in, a commented form.");
+      }else if (target) {
+        const injectNew = logger.injectNewFn(target.range, `#_${target.text}`);
+        injectNew();
+      }
+    }
+
+    if(userArg === "print-macro-wrap"){
+      let target = o.currentExpression;
+      if (target.isPrintMacroFnCall) {
+          vscode.window.showWarningMessage("repl-repl: Point is currently on, or in, a print macro fn call.");
+      }else if (target) {
+        let newText = target.isSilentPrintMacroFnCall ? target.text.substring(3).substring(-1) : target.text
+        const injectNew = logger.injectNewFn(target.range, `(? ${newText})`);
+        injectNew();
+      }
+    }
+
+    if(userArg === "remove-print-macro-wrap"){
+      let target = [o.currentExpression, o.currentForm, o.topLevel].find(o => o.isPrintMacroFnCall || o.isSilentPrintMacroFnCall);
+      if (!target) {
+        vscode.window.showWarningMessage("repl-repl: Point is currently not in a print macro fn call.");
+      }else{
+        vsSendCursorToPos(posForIdx(idxForPos(target.range.end)-1))
+        backwardSexp();
+        sexpRangeExpansion();
+        const injectNew = logger.injectNewFn(target.range, selectedText());
+        injectNew();
+        let revertOffset = target.isPrintMacroFnCall ? -3 : -4;
+        revertCursor(revertOffset, o.ogPoint);
+      }
+    }
+
+    //lo("o", o)
+    return;
+    // if (userArg === "remove-print-wrap") {
+    //   selectPrintWrap(o);
+    //   addRangeForPrintWrap(o)
+    //   vsSendCursorToPos(o.ogPoint);
+    //   return o;
+    // }else{
+    //   selectTextFns[userArg](o);
+    // }
+      // possibly move this logic down into branching below?
+
+  //   if (userArg === "remove-print-wrap") {
+  //     removePrintWrap(p);
+
+  //   }else if(p.textRange) {
+  //     if(p.isConsolePrintWrap && (userArg !== "remove-print-wrap")){
+  //       vscode.window.showWarningMessage("repl-repl: Currently inside print wrapped form.");
+
+  //     }else if (userArg ==="print-wrap-symbol-with-annotation"){
+  //       if (!p.isForm) {
+  //         const printWrap = logger.printWrap(p);
+  //         const injectNew = logger.injectNewFn(p.textRange, printWrap);
+  //         injectNew();
+  //       }else{
+  //         vscode.window.showWarningMessage("repl-repl: Point is currently on a form. In order to create an annoted print-wrap, point must be on a symbol, number, string, or keyword.");
+  //       }
+
+  //     }else if (userArg ==="print-wrap-on-point"){
+  //       const printWrapSimple = logger.printWrapSimple(p);
+  //       const injectNew = logger.injectNewFn(p.textRange, printWrapSimple);
+  //       injectNew();
+
+  //     }else if (userArg === "doc"){
+  //       if(!p.isForm && !p.isString && !p.isAnonFn && !p.isReified && !p.isCommentedForm && !p.isConsolePrintWrap && !p.isJSComment){
+  //         let id = makeid(15);
+  //         const docBlock = logger.doc(p.textToEval, id);
+  //         injectAndRevert(p, docBlock, id);
+  //       }else{
+  //         vscode.window.showWarningMessage("repl-repl: In order to , the cursor must be on a function symbol");
+  //       }
+  //     }else{
+  //       let id = makeid(15);
+  //       const printBlock = logger.printBlock(p, id);
+  //       injectAndRevert(p, printBlock, id);
+  //     }
+  //   }
+   }
 }
 
 
@@ -719,8 +880,14 @@ function activate(context) {
   let printWrapOnPoint = vscode.commands.registerCommand('repl-repl.print-wrap-on-point',
     () => replrepl('print-wrap-on-point')
   );
+  let printMacroWrap = vscode.commands.registerCommand('repl-repl.print-macro-wrap',
+    () => replrepl('print-macro-wrap')
+  );
   let printWrapSymbolWithAnnotation = vscode.commands.registerCommand('repl-repl.print-wrap-symbol-with-annotation',
     () => replrepl('print-wrap-symbol-with-annotation')
+  );
+  let removePrintMacroWrap = vscode.commands.registerCommand('repl-repl.remove-print-macro-wrap',
+    () => replrepl('remove-print-macro-wrap')
   );
   let removePrintWrap = vscode.commands.registerCommand('repl-repl.remove-print-wrap',
     () => replrepl('remove-print-wrap')
@@ -738,12 +905,12 @@ function activate(context) {
   context.subscriptions.push(evalCurrentForm);
   context.subscriptions.push(evalOnPoint);
   context.subscriptions.push(removePrintWrap);
+  context.subscriptions.push(removePrintMacroWrap);
   context.subscriptions.push(uncomment);
   context.subscriptions.push(comment);
   context.subscriptions.push(doc);
-
-  /*TODO lose these subs*/
   context.subscriptions.push(printWrapOnPoint);
+  context.subscriptions.push(printMacroWrap);
   context.subscriptions.push(printWrapSymbolWithAnnotation);
 
 }

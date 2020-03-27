@@ -38,6 +38,8 @@
         "onCommand:repl-repl.eval-on-point",
         "onCommand:repl-repl.print-wrap-symbol-with-annotation",
         "onCommand:repl-repl.print-wrap-on-point",
+        "onCommand:repl-repl.print-macro-wrap",
+        "onCommand:repl-repl.remove-print-macro-wrap",
         "onCommand:repl-repl.remove-print-wrap",
         "onCommand:repl-repl.comment",
         "onCommand:repl-repl.uncomment",
@@ -65,6 +67,14 @@
             {
                 "command": "repl-repl.print-wrap-on-point",
                 "title": "repl-repl: Print Wrap On Point"
+            },
+            {
+                "command": "repl-repl.print-macro-wrap",
+                "title": "repl-repl: Print Macro Wrap"
+            },
+            {
+                "command": "repl-repl.remove-print-macro-wrap",
+                "title": "repl-repl: Remove Print Macro Wrap"
             },
             {
                 "command": "repl-repl.remove-print-wrap",
@@ -128,6 +138,11 @@
                 "command": "repl-repl.eval-outermost-form",
                 "key": "shift+ctrl+alt+enter",
                 "when": "isLinux editorTextFocus"
+            },
+            {
+                "command": "repl-repl.uncomment",
+                "key": "ctrl+shift+u",
+                "when": "isMac && editorTextFocus"
             }
         ]
     },
