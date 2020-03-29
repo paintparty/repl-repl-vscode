@@ -384,7 +384,7 @@ function textRangeDetails(type){
 }
 
 
-function getFormLevels(point){
+function getFormLevels(point) {
   let o = {};
   rangeForDefun();
   o.topLevel = textRangeDetails("topLevel");
@@ -400,7 +400,6 @@ function getFormLevels(point){
   sexpRangeExpansion();
   o.currentExpression = textRangeDetails("currentExpression");
   vsSendCursorToPos(point);
-  
   return o;
 }
 
@@ -436,9 +435,9 @@ function makeid(length) {
   return result;
 }
 
-function injectAndRevert(p, s, id){
-  const injectNew = logger.injectNewFn(p.textRange, s);
-  const revert = logger.revertPrintBlockFn(p, id);
+function injectAndRevert(o, s, id, ogPoint){
+  const injectNew = logger.injectNewFn(o.range, s);
+  const revert = logger.revertPrintBlockFn(o, id);
   const save = saveFileFn();
   injectNew()
   .then(save)
@@ -446,8 +445,8 @@ function injectAndRevert(p, s, id){
     function(){
       setTimeout(function(){
         revert().then(function(){
-          decorate.highlightEvalForm(p.textRange);
-          vsSendCursorToPos(p.ogPoint);
+          decorate.highlightEvalForm(o.range);
+          vsSendCursorToPos(ogPoint);
         });
       }, 500);
     });
@@ -800,7 +799,35 @@ function profileEvalFn(userArg){
       }
     }
 
+    function evalForms(sexpObj) {
+      let id = makeid(15);
+      const printBlock = logger.printBlock(sexpObj, id);
+      injectAndRevert(sexpObj, printBlock, id, o.ogPoint);
+    }
+
+    if(userArg === "eval-current-form") {
+      evalForms(o.currentForm);
+    }
+
+    if(userArg === "eval-on-point") {
+      evalForms(o.currentExpression);
+    }
+
+    if(userArg === "eval-outermost-form") {
+      evalForms(o.topLevel);
+    }
+
+    if(userArg === "doc") {
+      let id = makeid(15);
+      let {range} = o.topLevel;
+      let {text} = o.currentExpression;
+      let printBlock = `(use '[cljs.repl :only [doc]]) (console.clear) (doc ${text}) #_"${id}"`;
+      let injectionRange = new vscode.Range(range.end, range.end);
+      injectAndRevert({range: injectionRange}, printBlock, id, o.ogPoint);
+    }
+
     //lo("o", o)
+
     return;
     // if (userArg === "remove-print-wrap") {
     //   selectPrintWrap(o);
