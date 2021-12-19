@@ -36,13 +36,12 @@
         "onCommand:repl-repl.eval-outermost-form",
         "onCommand:repl-repl.eval-current-form",
         "onCommand:repl-repl.eval-on-point",
-        "onCommand:repl-repl.print-wrap-symbol-with-annotation",
-        "onCommand:repl-repl.print-wrap-on-point",
-        "onCommand:repl-repl.print-macro-wrap",
-        "onCommand:repl-repl.remove-print-macro-wrap",
-        "onCommand:repl-repl.remove-print-wrap",
-        "onCommand:repl-repl.comment",
-        "onCommand:repl-repl.uncomment",
+        "onCommand:repl-repl.toggle-console-log-wrap",
+        "onCommand:repl-repl.toggle-pprint-wrap",
+        "onCommand:repl-repl.toggle-ignore-form",
+        "onCommand:repl-repl.insert-print-and-return-require",
+        "onCommand:repl-repl.toggle-print-and-return-macro",
+        "onCommand:repl-repl.toggle-print-and-return-macro-silent",
         "onCommand:repl-repl.doc"
     ],
     "main": "./src/extension",
@@ -61,32 +60,28 @@
                 "title": "repl-repl: Evaluate Outermost Form"
             },
             {
-                "command": "repl-repl.print-wrap-symbol-with-annotation",
-                "title": "repl-repl: Print Wrap Symbol With Annotation"
+                "command": "repl-repl.toggle-console-log-wrap",
+                "title": "repl-repl: Toggle js/console.log Wrap"
             },
             {
-                "command": "repl-repl.print-wrap-on-point",
-                "title": "repl-repl: Print Wrap On Point"
+                "command": "repl-repl.toggle-pprint-wrap",
+                "title": "repl-repl: Toggle pprint Wrap"
             },
             {
-                "command": "repl-repl.print-macro-wrap",
-                "title": "repl-repl: Print Macro Wrap"
+                "command": "repl-repl.toggle-ignore-form",
+                "title": "repl-repl: Toggle Ignore Form \"#_\""
             },
             {
-                "command": "repl-repl.remove-print-macro-wrap",
-                "title": "repl-repl: Remove Print Macro Wrap"
+                "command": "repl-repl.toggle-print-and-return-macro",
+                "title": "repl-repl: Toggle Print-And-Return Macro"
             },
             {
-                "command": "repl-repl.remove-print-wrap",
-                "title": "repl-repl: Remove Print Wrap"
+                "command": "repl-repl.insert-print-and-return-require",
+                "title": "repl-repl: Insert Print-And-Return Require"
             },
             {
-                "command": "repl-repl.comment",
-                "title": "repl-repl: Comment"
-            },
-            {
-                "command": "repl-repl.uncomment",
-                "title": "repl-repl: Uncomment"
+                "command": "repl-repl.toggle-print-and-return-macro-silent",
+                "title": "repl-repl: Toggle Print-And-Return Macro Silent"
             },
             {
                 "command": "repl-repl.doc",
