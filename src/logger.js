@@ -19,7 +19,7 @@ function getCopiedEscapeDefs(copied) {
   let defMatch = /^\(\s*def(?:n|record|protocol|multi|type|method)?\s+(?:\^\S+\s+)*(?:\#\^\{.*\}\s)*(\S+)[\s\S]*\)$/
   let defMatchResult = defMatch.exec(copied);
   if (defMatchResult) {
-    return '(symbol (str (namespace ::x) "/" (quote ' + defMatchResult[1] + ')))';
+    return `(symbol (str "'#" (namespace ::x) "/" (quote ${defMatchResult[1]})))`;
   } else {
     let defExpressionMatch = /^def(?:n|record|protocol|multi|type|method)?$/
     let defExpressionMatchResult = defExpressionMatch.exec(copied);
@@ -27,80 +27,17 @@ function getCopiedEscapeDefs(copied) {
   }
 }
 
-function doc (s, id) {
-  let block = `
-(let [{ns :ns fn-name :name arglists :arglists doc :doc} (meta #'${s})
- args (interpose "\\n" (map #(str "(" (.join (clj->js (cons (name fn-name) %)) " ") ")") arglists))
- fully-qualified (symbol (str (name ns) "/" (name fn-name)))]
 
- (apply
- js/console.log
- (concat
- ["\\n"
- ${s}
- "\\n"
- "\\n"
- fully-qualified
- "\\n"
- "\\n"]
-
-  args
-
-  ["\\n"
-  "\\n"
-  doc
-  "\\n"
-  "\\n"
-  (str "https://cljs.github.io/api/" fully-qualified)
-  "\\n"
-  "\\n"
-  (str "https://clojure.docs.org/" fully-qualified)
-  "\\n\\n"]))) #_"${id}"`
-
-  return block.replace(/\n/gm, '');
-}
-
-
-
-function printWrapSimple(o) {
-  let applyLog = `(js/console.log ${o.textToEval})`;
-  let isCljc = o.fileExt === "cljc";
-  let cljcApplyLog = isCljc ? '#?(:cljs ' + applyLog + ')' : applyLog;
-  return cljcApplyLog;
-}
-
-function printWrap(o) {
-  // escape defs
-  let thingToEval = o.isJsComment ?
-    '(js/eval "' + o.jsComment + '")' :
-    getCopiedEscapeDefs(o.textToEval);
-
-  let applyLog = `(js/console.log "\\n" (quote ${thingToEval}) "\\n\\n =>" ${thingToEval} "\\n\\n")`;
-  let isCljc = o.fileExt === "cljc";
-  let cljcApplyLog = isCljc ? '#?(:cljs ' + applyLog + ')' : applyLog;
-  return cljcApplyLog;
-}
-
-
-function printBlock(o, id) {
+function printBlock(o, id, fileExt) {
   // stringify fn
   let strfnName = 'f';
-
-  // cljs to pass quoted form to stringify fn
-  // let thingToEvalDisplay = o.jsComment ?
-  //   `"${o.jsComment}"` : `(${strfnName}  (quote ${o.textToEval}))`;
-
   let thingToEvalDisplay = `(${strfnName}  (quote ${o.text}))`;
-
-  // escape defs
-  // let thingToEval = o.jsComment ?
-  //   `(js/eval "${o.jsComment}")` : getCopiedEscapeDefs(o.textToEval);
-
   let thingToEval = getCopiedEscapeDefs(o.text);
-
+  let consoleClear = (fileExt === "cljc") ? "" : "(js/console.clear)";
+  let printFn = (fileExt === "cljc") ? "println" : "js/console.log";
   let applyLog =`
 (apply
- js/console.log
+ ${printFn}
 ["\\n"
  ${thingToEvalDisplay}
  "\\n"
@@ -109,14 +46,12 @@ function printBlock(o, id) {
  (${strfnName} ${thingToEval})
  "\\n "])`;
 
-  // let cljcApplyLog = (o.fileExt === "cljc") ? '#?(:cljs ' + applyLog + ')' : applyLog;
-  let cljcApplyLog = applyLog;
 
   let newSurf = `
 (let [${strfnName} #(if (string? %)
  (str "\\"" % "\\"") %)]
- (js/console.clear)
- ${cljcApplyLog}
+ ${consoleClear}
+ ${applyLog}
  ${o.text}) #_"${id}"`;
 
   return newSurf.replace(/\n/gm, '');
@@ -127,14 +62,6 @@ function injectNewFn (range, newText) {
   return () => {
     return vscode.window.activeTextEditor.edit(edit => {
       edit.replace(range, newText);
-    });
-  };
-}
-
-function replacePrintWrapFn (p) {
-  return () => {
-    return vscode.window.activeTextEditor.edit(edit => {
-      edit.replace(p.textRange, p.consolePrintWrappedText);
     });
   };
 }
@@ -158,11 +85,7 @@ function revertPrintBlockFn (o, id) {
       while (match = re.exec(documentText)) {
          matchRanges.push([match.index, re.lastIndex])
       }
-      lv("id", id)
-      lo("re", re)
-      lo("matchRanges", matchRanges);
       const endPos = vscode.window.activeTextEditor.document.positionAt(matchRanges[0][1]);
-      lo("endPos", endPos);
       edit.replace(new vscode.Range(o.range.start, endPos), o.text);
     });
   };
@@ -207,11 +130,7 @@ function deletePrintBlockFn(p) {
 }
 
 exports.printBlock = printBlock;
-exports.printWrap = printWrap;
-exports.printWrapSimple = printWrapSimple;
-exports.doc = doc;
 exports.insertTextFn = insertTextFn;
 exports.deletePrintBlockFn = deletePrintBlockFn;
 exports.injectNewFn = injectNewFn;
 exports.revertPrintBlockFn = revertPrintBlockFn;
-exports.replacePrintWrapFn = replacePrintWrapFn;
