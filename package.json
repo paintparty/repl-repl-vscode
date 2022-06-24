@@ -40,9 +40,7 @@
         "onCommand:repl-repl.toggle-pprint-wrap",
         "onCommand:repl-repl.toggle-ignore-form",
         "onCommand:repl-repl.insert-print-and-return-require",
-        "onCommand:repl-repl.toggle-print-and-return-macro",
-        "onCommand:repl-repl.toggle-print-and-return-macro-silent",
-        "onCommand:repl-repl.doc"
+        "onCommand:repl-repl.toggle-print-and-return-macro"
     ],
     "main": "./src/extension",
     "contributes": {
@@ -78,66 +76,6 @@
             {
                 "command": "repl-repl.insert-print-and-return-require",
                 "title": "repl-repl: Insert Print-And-Return Require"
-            },
-            {
-                "command": "repl-repl.toggle-print-and-return-macro-silent",
-                "title": "repl-repl: Toggle Print-And-Return Macro Silent"
-            },
-            {
-                "command": "repl-repl.doc",
-                "title": "repl-repl: View Function Documentation"
-            }
-        ],
-        "keybindings": [
-            {
-                "command": "repl-repl.eval-on-point",
-                "key": "cmd+enter",
-                "when": "isMac && editorTextFocus"
-            },
-            {
-                "command": "repl-repl.eval-on-point",
-                "key": "alt+enter",
-                "when": "isWindows && editorTextFocus"
-            },
-            {
-                "command": "repl-repl.eval-on-point",
-                "key": "alt+enter",
-                "when": "isLinux && editorTextFocus"
-            },
-            {
-                "command": "repl-repl.eval-current-form",
-                "key": "alt+cmd+enter",
-                "when": "isMac && editorTextFocus"
-            },
-            {
-                "command": "repl-repl.eval-current-form",
-                "key": "ctrl+alt+enter",
-                "when": "isWindows && editorTextFocus"
-            },
-            {
-                "command": "repl-repl.eval-current-form",
-                "key": "ctrl+alt+enter",
-                "when": "isLinux && editorTextFocus"
-            },
-            {
-                "command": "repl-repl.eval-outermost-form",
-                "key": "ctrl+alt+cmd+enter",
-                "when": "isMac && editorTextFocus"
-            },
-            {
-                "command": "repl-repl.eval-outermost-form",
-                "key": "shift+ctrl+alt+enter",
-                "when": "isWindows && editorTextFocus"
-            },
-            {
-                "command": "repl-repl.eval-outermost-form",
-                "key": "shift+ctrl+alt+enter",
-                "when": "isLinux editorTextFocus"
-            },
-            {
-                "command": "repl-repl.uncomment",
-                "key": "ctrl+shift+u",
-                "when": "isMac && editorTextFocus"
             }
         ]
     },
