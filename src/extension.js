@@ -849,15 +849,6 @@ function profileEvalFn(userArg){
     evalForms(o, "topLevel");
   }
 
-  if(userArg === "doc") {
-    let id = makeid(15);
-    let {range} = o.topLevel;
-    let {text} = o.currentExpression;
-    let printBlock = `(use '[cljs.repl :only [doc]]) (console.clear) (doc ${text}) #_"${id}"`;
-    let injectionRange = new vscode.Range(range.end, range.end);
-    injectAndRevert({range: injectionRange}, printBlock, id, o.ogPoint);
-  }
-
   setTimeout(()=>vscode.commands.executeCommand("extension.vim_escape"), 100);
   return;
 
