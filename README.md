@@ -1,3 +1,11 @@
+:warning: This extension has been deprecated and may no longer work the way you expect it to.
+
+An extension with similar functionality which is tailored to working with the [Clojure(Script) library Par](https://github.com/paintparty/par) is slated be released in Feb '23.
+
+<br>
+
+<br>
+
 # repl-repl <img src="https://raw.githubusercontent.com/paintparty/repl-repl-vscode/master/images/rr-sticker-225.png" height="80px" align="right" />
 
 &nbsp;
