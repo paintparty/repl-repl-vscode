@@ -1,4 +1,4 @@
-:warning: This extension has been deprecated and may no longer work the way you expect it to.
+:warning: THIS EXTENSION HAS BEEN DEPRECATED AND MAY NO LONGER WORK THE WAY YOU EXPECT IT TO.
 
 An extension with similar functionality which is tailored to working with the [Clojure(Script) library Par](https://github.com/paintparty/par) is slated be released in Feb '23.
 
